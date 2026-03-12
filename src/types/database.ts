@@ -194,7 +194,14 @@ export interface Database {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      create_booking_atomic: {
+        Args: {
+          p_user_id: string
+          p_menu_schedule_id: string
+          p_notes?: string | null
+        }
+        Returns: string
+      }
     }
     Enums: {
       booking_status: 'pending' | 'confirmed' | 'denied' | 'cancelled'
