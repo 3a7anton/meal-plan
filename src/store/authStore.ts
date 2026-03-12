@@ -26,6 +26,8 @@ interface SignUpData {
   dietaryPreferences?: string[]
 }
 
+let authSubscription: { unsubscribe: () => void } | null = null
+
 export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
   profile: null,
@@ -35,6 +37,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   initialize: async () => {
     try {
+      // Cleanup previous listener to prevent duplicates
+      authSubscription?.unsubscribe()
+
       const { data: { session } } = await supabase.auth.getSession()
       
       if (session?.user) {
@@ -43,7 +48,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       }
       
       // Listen for auth changes
-      supabase.auth.onAuthStateChange(async (_event, session) => {
+      const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
         set({ user: session?.user || null, session })
         
         if (session?.user) {
@@ -52,6 +57,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           set({ profile: null })
         }
       })
+      authSubscription = subscription
     } catch (error) {
       console.error('Auth initialization error:', error)
     } finally {
@@ -127,13 +133,16 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         // Profile doesn't exist yet — may be a trigger timing issue
         // Try once more after a short delay
         await new Promise((r) => setTimeout(r, 1000))
-        const { data: retryData } = await supabase
+        const { data: retryData, error: retryError } = await supabase
           .from('profiles')
           .select('*')
           .eq('id', userId)
           .maybeSingle()
 
-        set({ profile: retryData })
+        if (retryError) {
+          console.error('Profile retry failed:', retryError)
+        }
+        set({ profile: retryData ?? null })
       }
     } catch (error) {
       console.error('Error fetching profile:', error)

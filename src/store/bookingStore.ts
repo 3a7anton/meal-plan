@@ -75,52 +75,14 @@ export const useBookingStore = create<BookingState>((set, get) => ({
 
   createBooking: async (menuScheduleId: string, userId: string, notes?: string) => {
     try {
-      // First, get the schedule details to check for conflicts
-      const { data: schedule, error: scheduleError } = await supabase
-        .from('menu_schedules')
-        .select('scheduled_date, time_slot, capacity')
-        .eq('id', menuScheduleId)
-        .single()
+      // Use atomic database function to prevent race conditions
+      const { error } = await supabase.rpc('create_booking_atomic', {
+        p_user_id: userId,
+        p_menu_schedule_id: menuScheduleId,
+        p_notes: notes || null,
+      })
 
-      if (scheduleError) throw scheduleError
-
-      const scheduleData = schedule as { scheduled_date: string; time_slot: string; capacity: number }
-
-      // Check if user already has a booking at this time
-      const hasConflict = await get().checkConflict(
-        userId,
-        scheduleData.scheduled_date,
-        scheduleData.time_slot
-      )
-
-      if (hasConflict) {
-        throw new Error('You already have a booking at this time slot')
-      }
-
-      // Check capacity
-      const { count, error: countError } = await supabase
-        .from('bookings')
-        .select('*', { count: 'exact', head: true })
-        .eq('menu_schedule_id', menuScheduleId)
-        .in('status', ['pending', 'confirmed'])
-
-      if (countError) throw countError
-
-      if (count !== null && count >= scheduleData.capacity) {
-        throw new Error('This time slot is fully booked')
-      }
-
-      // Create the booking
-      const { error } = await supabase
-        .from('bookings')
-        .insert({
-          user_id: userId,
-          menu_schedule_id: menuScheduleId,
-          status: 'pending' as const,
-          notes,
-        })
-
-      if (error) throw error
+      if (error) throw new Error(error.message)
 
       // Refresh bookings
       await get().fetchUserBookings(userId)
