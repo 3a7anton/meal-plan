@@ -15,7 +15,9 @@ const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'http://localhost:5173').
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Handle CORS
   const origin = req.headers.origin
-  res.setHeader('Access-Control-Allow-Origin', origin && allowedOrigins.includes(origin) ? origin : allowedOrigins[0])
+  if (origin && allowedOrigins.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin)
+  }
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS')
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
 

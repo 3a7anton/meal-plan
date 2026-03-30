@@ -16,11 +16,16 @@ async function verifyAdmin(token: string) {
   const { data: { user }, error } = await supabase.auth.getUser(token)
   if (error || !user) return null
 
-  const { data: profile } = await supabase
+  const { data: profile, error: profileError } = await supabase
     .from('profiles')
     .select('role')
     .eq('id', user.id)
     .single()
+
+  if (profileError) {
+    console.error('Profile query error in verifyAdmin:', profileError)
+    throw new Error('Failed to verify admin role')
+  }
 
   if (profile?.role !== 'admin') return null
   return user
@@ -29,7 +34,9 @@ async function verifyAdmin(token: string) {
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Handle CORS
   const origin = req.headers.origin
-  res.setHeader('Access-Control-Allow-Origin', origin && allowedOrigins.includes(origin) ? origin : allowedOrigins[0])
+  if (origin && allowedOrigins.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin)
+  }
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS')
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
 
@@ -56,15 +63,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(403).json({ error: 'Forbidden: Admin access required' })
     }
 
-    // Fetch all users/profiles
-    const { data, error } = await supabase
+    // Parse pagination params
+    const limitParam = typeof req.query.limit === 'string' ? parseInt(req.query.limit, 10) : 20
+    const offsetParam = typeof req.query.offset === 'string' ? parseInt(req.query.offset, 10) : 0
+    const limit = Number.isFinite(limitParam) && limitParam > 0 ? Math.min(limitParam, 100) : 20
+    const offset = Number.isFinite(offsetParam) && offsetParam >= 0 ? offsetParam : 0
+
+    // Fetch users/profiles with explicit columns, count, and pagination
+    const { data, error, count } = await supabase
       .from('profiles')
-      .select('*')
+      .select('id, full_name, email, department, role, dietary_preferences, is_active, created_at', { count: 'exact' })
       .order('created_at', { ascending: false })
+      .range(offset, offset + limit - 1)
 
     if (error) throw error
 
-    return res.status(200).json(data)
+    return res.status(200).json({
+      data,
+      total: count,
+      limit,
+      offset,
+    })
   } catch (error) {
     console.error('Error:', error)
     return res.status(500).json({ error: 'Internal server error' })

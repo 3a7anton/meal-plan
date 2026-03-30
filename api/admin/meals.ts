@@ -12,15 +12,23 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
 const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'http://localhost:5173').split(',')
 
+// Columns that can be set/updated on meals
+const ALLOWED_MEAL_FIELDS = ['name', 'description', 'meal_type', 'dietary_tags', 'image_url', 'is_active'] as const
+
 async function verifyAdmin(token: string) {
   const { data: { user }, error } = await supabase.auth.getUser(token)
   if (error || !user) return null
 
-  const { data: profile } = await supabase
+  const { data: profile, error: profileError } = await supabase
     .from('profiles')
     .select('role')
     .eq('id', user.id)
     .single()
+
+  if (profileError) {
+    console.error('Profile query error in verifyAdmin:', profileError)
+    throw new Error('Failed to verify admin role')
+  }
 
   if (profile?.role !== 'admin') return null
   return user
@@ -29,7 +37,9 @@ async function verifyAdmin(token: string) {
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Handle CORS
   const origin = req.headers.origin
-  res.setHeader('Access-Control-Allow-Origin', origin && allowedOrigins.includes(origin) ? origin : allowedOrigins[0])
+  if (origin && allowedOrigins.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin)
+  }
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS')
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
 
@@ -67,7 +77,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // POST - Create a new meal
     if (req.method === 'POST') {
-      const { name, description, meal_type, dietary_tags, image_url, capacity } = req.body
+      const { name, description, meal_type, dietary_tags, image_url } = req.body
 
       if (!name) {
         return res.status(400).json({ error: 'name is required' })
@@ -95,10 +105,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // PUT/PATCH - Update an existing meal
     if (req.method === 'PUT' || req.method === 'PATCH') {
-      const { id, ...updateFields } = req.body
+      const { id, ...rawFields } = req.body
 
       if (!id) {
         return res.status(400).json({ error: 'id is required' })
+      }
+
+      // Whitelist only allowed updatable fields
+      const updateFields: Record<string, unknown> = {}
+      for (const key of ALLOWED_MEAL_FIELDS) {
+        if (key in rawFields) {
+          updateFields[key] = rawFields[key]
+        }
+      }
+
+      if (Object.keys(updateFields).length === 0) {
+        return res.status(400).json({ error: 'No valid fields to update' })
       }
 
       const { data, error } = await supabase
@@ -106,7 +128,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         .update(updateFields)
         .eq('id', id)
         .select()
-        .single()
+        .maybeSingle()
 
       if (error) throw error
 
@@ -119,7 +141,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // DELETE - Soft delete (deactivate) a meal
     if (req.method === 'DELETE') {
-      const { id } = req.body || req.query
+      const id = req.body?.id ?? req.query?.id
 
       if (!id) {
         return res.status(400).json({ error: 'id is required' })
@@ -130,9 +152,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         .update({ is_active: false })
         .eq('id', id)
         .select()
-        .single()
+        .maybeSingle()
 
       if (error) throw error
+
+      if (!data) {
+        return res.status(404).json({ error: 'Meal not found' })
+      }
 
       return res.status(200).json(data)
     }

@@ -84,7 +84,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         .eq('id', notification_id)
         .eq('user_id', user.id)
         .select()
-        .single()
+        .maybeSingle()
 
       if (error) throw error
 

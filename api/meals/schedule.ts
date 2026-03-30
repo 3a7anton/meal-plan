@@ -49,6 +49,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ error: 'date query parameter is required (format: YYYY-MM-DD)' })
     }
 
+    // Validate YYYY-MM-DD format
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      return res.status(400).json({ error: 'date must be in YYYY-MM-DD format' })
+    }
+
+    // Validate it's a real calendar date (rejects e.g. 2024-02-30)
+    const parsed = new Date(date + 'T00:00:00Z')
+    if (isNaN(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== date) {
+      return res.status(400).json({ error: 'date is not a valid calendar date' })
+    }
+
     // Fetch menu schedules for the given date with meal details
     const { data: schedules, error } = await supabase
       .from('menu_schedules')
