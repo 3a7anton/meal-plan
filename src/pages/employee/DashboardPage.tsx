@@ -103,11 +103,28 @@ export function DashboardPage() {
   return (
     <div className="space-y-6">
       {/* Welcome Header */}
-      <div className="bg-gradient-to-r from-primary-600 to-primary-700 rounded-2xl p-6 text-white">
-        <h1 className="text-2xl font-bold">Welcome back, {profile?.full_name?.split(' ')[0]}!</h1>
-        <p className="mt-1 text-primary-100">
-          {format(new Date(), 'EEEE, MMMM d, yyyy')}
-        </p>
+      <div className="bg-gradient-to-r from-primary-600 to-primary-700 rounded-2xl p-6 text-white relative overflow-hidden">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold">Welcome back, {profile?.full_name?.split(' ')[0]}!</h1>
+            <p className="mt-1 text-primary-100">
+              {format(new Date(), 'EEEE, MMMM d, yyyy')}
+            </p>
+          </div>
+          <div className="h-16 w-16 rounded-full bg-white/20 flex items-center justify-center overflow-hidden border-2 border-white/30">
+            {profile?.avatar_url ? (
+              <img
+                src={profile.avatar_url}
+                alt={profile.full_name}
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              <span className="text-2xl font-bold text-white">
+                {profile?.full_name?.charAt(0)?.toUpperCase() || '?'}
+              </span>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Due Amount Alert */}
