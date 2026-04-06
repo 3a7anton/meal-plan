@@ -6,7 +6,6 @@ import { Card, CardContent, CardHeader, CardTitle, Button, Loading } from '../..
 import { BookingCard, MealCard } from '../../components/employee'
 import { format } from 'date-fns'
 import { supabase } from '../../lib/supabaseClient'
-import toast from 'react-hot-toast'
 
 export function DashboardPage() {
   const { user, profile } = useAuthStore()

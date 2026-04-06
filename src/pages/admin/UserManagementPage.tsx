@@ -101,7 +101,6 @@ export function UserManagementPage() {
       if (error) throw error
 
       toast.success('User updated successfully')
-      setLimitWarning(null)
       fetchUsers()
     } catch (error) {
       toast.error('Failed to update user')

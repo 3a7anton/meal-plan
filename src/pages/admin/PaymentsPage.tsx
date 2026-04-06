@@ -12,7 +12,7 @@ interface UserBill {
     id?: string
     amount: number
     meal_count: number
-    status: 'paid' | 'unpaid'
+    status: 'paid' | 'unpaid' | 'refunded'
     paid_at?: string | null
   } | null
   calculated_amount: number
