@@ -1,0 +1,200 @@
+import { useEffect, useState } from 'react'
+import { format, addDays, subDays } from 'date-fns'
+import { ChevronLeft, ChevronRight, UtensilsCrossed } from 'lucide-react'
+import { useAuthStore, useMenuStore, useBookingStore } from '../../store'
+import { Card, Button, Loading, Select } from '../../components/ui'
+import { MealCard } from '../../components/employee'
+import { ConfirmDialog } from '../../components/ui/Modal'
+import toast from 'react-hot-toast'
+
+export function MenuPage() {
+  const { user } = useAuthStore()
+  const { schedules, fetchSchedules, isLoading } = useMenuStore()
+  const { createBooking, bookings, fetchUserBookings } = useBookingStore()
+  
+  const [selectedDate, setSelectedDate] = useState(new Date())
+  const [mealTypeFilter, setMealTypeFilter] = useState<string>('all')
+  const [bookingScheduleId, setBookingScheduleId] = useState<string | null>(null)
+  const [isBooking, setIsBooking] = useState(false)
+
+  const formattedDate = format(selectedDate, 'yyyy-MM-dd')
+
+  useEffect(() => {
+    fetchSchedules(formattedDate)
+    if (user) {
+      fetchUserBookings(user.id)
+    }
+  }, [formattedDate, fetchSchedules, user, fetchUserBookings])
+
+  const handlePrevDay = () => setSelectedDate(subDays(selectedDate, 1))
+  const handleNextDay = () => setSelectedDate(addDays(selectedDate, 1))
+  const handleToday = () => setSelectedDate(new Date())
+
+  const handleBookMeal = async () => {
+    if (!bookingScheduleId || !user) return
+
+    setIsBooking(true)
+    const result = await createBooking(bookingScheduleId, user.id)
+    
+    if (result.error) {
+      toast.error(result.error.message)
+    } else {
+      toast.success('Meal booked successfully!')
+      fetchSchedules(formattedDate)
+    }
+    
+    setIsBooking(false)
+    setBookingScheduleId(null)
+  }
+
+  const filteredSchedules = schedules.filter((schedule) => {
+    if (mealTypeFilter === 'all') return true
+    return schedule.meal?.meal_type === mealTypeFilter
+  })
+
+  const breakfastSchedules = filteredSchedules.filter((s) => s.meal?.meal_type === 'breakfast')
+  const lunchSchedules = filteredSchedules.filter((s) => s.meal?.meal_type === 'lunch')
+
+  // Check if user has booking at specific time slot
+  const getUserBookingAtSlot = (date: string, timeSlot: string) => {
+    return bookings.find(
+      (b) =>
+        b.menu_schedule?.scheduled_date === date &&
+        b.menu_schedule?.time_slot === timeSlot &&
+        (b.status === 'pending' || b.status === 'confirmed')
+    )
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Menu</h1>
+          <p className="text-gray-500">Browse and book your meals</p>
+        </div>
+
+        {/* Filters */}
+        <div className="flex items-center gap-3">
+          <Select
+            options={[
+              { value: 'all', label: 'All Meals' },
+              { value: 'breakfast', label: 'Breakfast' },
+              { value: 'lunch', label: 'Lunch' },
+            ]}
+            value={mealTypeFilter}
+            onChange={(e) => setMealTypeFilter(e.target.value)}
+            className="w-40"
+          />
+        </div>
+      </div>
+
+      {/* Date Navigation */}
+      <Card>
+        <div className="flex items-center justify-between p-4">
+          <Button variant="ghost" onClick={handlePrevDay}>
+            <ChevronLeft className="h-5 w-5" />
+          </Button>
+          
+          <div className="text-center">
+            <h2 className="text-lg font-semibold text-gray-900">
+              {format(selectedDate, 'EEEE, MMMM d, yyyy')}
+            </h2>
+            {format(selectedDate, 'yyyy-MM-dd') !== format(new Date(), 'yyyy-MM-dd') && (
+              <button
+                onClick={handleToday}
+                className="text-sm text-primary-600 hover:text-primary-700"
+              >
+                Go to Today
+              </button>
+            )}
+          </div>
+
+          <Button variant="ghost" onClick={handleNextDay}>
+            <ChevronRight className="h-5 w-5" />
+          </Button>
+        </div>
+      </Card>
+
+      {/* Menu Content */}
+      {isLoading ? (
+        <Loading text="Loading menu..." className="py-12" />
+      ) : filteredSchedules.length === 0 ? (
+        <Card>
+          <div className="text-center py-12">
+            <UtensilsCrossed className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900">No meals available</h3>
+            <p className="text-gray-500 mt-1">
+              There are no meals scheduled for this day.
+            </p>
+          </div>
+        </Card>
+      ) : (
+        <div className="space-y-8">
+          {/* Breakfast Section */}
+          {(mealTypeFilter === 'all' || mealTypeFilter === 'breakfast') && breakfastSchedules.length > 0 && (
+            <section>
+              <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                <span className="text-2xl">🌅</span> Breakfast
+              </h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {breakfastSchedules.map((schedule) => {
+                  const existingBooking = getUserBookingAtSlot(
+                    schedule.scheduled_date,
+                    schedule.time_slot
+                  )
+                  return (
+                    <MealCard
+                      key={schedule.id}
+                      schedule={schedule}
+                      onBook={(id) => setBookingScheduleId(id)}
+                      userHasBooking={!!existingBooking}
+                      bookingTimeLimit={schedule.booking_time_limit || 60}
+                    />
+                  )
+                })}
+              </div>
+            </section>
+          )}
+
+          {/* Lunch Section */}
+          {(mealTypeFilter === 'all' || mealTypeFilter === 'lunch') && lunchSchedules.length > 0 && (
+            <section>
+              <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                <span className="text-2xl">☀️</span> Lunch
+              </h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {lunchSchedules.map((schedule) => {
+                  const existingBooking = getUserBookingAtSlot(
+                    schedule.scheduled_date,
+                    schedule.time_slot
+                  )
+                  return (
+                    <MealCard
+                      key={schedule.id}
+                      schedule={schedule}
+                      onBook={(id) => setBookingScheduleId(id)}
+                      userHasBooking={!!existingBooking}
+                      bookingTimeLimit={schedule.booking_time_limit || 60}
+                    />
+                  )
+                })}
+              </div>
+            </section>
+          )}
+        </div>
+      )}
+
+      {/* Booking Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={!!bookingScheduleId}
+        onClose={() => setBookingScheduleId(null)}
+        onConfirm={handleBookMeal}
+        title="Confirm Booking"
+        message="Are you sure you want to book this meal? Your booking will be pending until approved by an admin."
+        confirmText="Book Meal"
+        isLoading={isBooking}
+      />
+    </div>
+  )
+}
