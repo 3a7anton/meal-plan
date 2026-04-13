@@ -36,7 +36,7 @@ export const useBookingStore = create<BookingState>((set, get) => ({
       Date.now() - lastFetched < CACHE_DURATION &&
       !forceRefresh
 
-    if (isCacheValid && bookings.length > 0) {
+    if (isCacheValid) {
       return
     }
 
@@ -69,14 +69,15 @@ export const useBookingStore = create<BookingState>((set, get) => ({
   },
 
   fetchAllBookings: async (forceRefresh = false) => {
-    const { lastFetched, bookings } = get()
+    const { lastFetched, cachedUserId, bookings } = get()
 
-    // Return cached data if valid
+    // Return cached data if valid (must be 'all' cache, within cache duration, and not forced)
     const isCacheValid = lastFetched &&
+      cachedUserId === 'all' &&
       Date.now() - lastFetched < CACHE_DURATION &&
       !forceRefresh
 
-    if (isCacheValid && bookings.length > 0) {
+    if (isCacheValid) {
       return bookings
     }
 
@@ -238,7 +239,7 @@ export const useMenuStore = create<MenuState>((set, get) => ({
       Date.now() - lastFetched < CACHE_DURATION &&
       !forceRefresh
 
-    if (isCacheValid && schedules.length > 0) {
+    if (isCacheValid) {
       return
     }
 
@@ -301,7 +302,7 @@ export const useMenuStore = create<MenuState>((set, get) => ({
       Date.now() - lastFetched < CACHE_DURATION &&
       !forceRefresh
 
-    if (isCacheValid && schedules.length > 0) {
+    if (isCacheValid) {
       return
     }
 

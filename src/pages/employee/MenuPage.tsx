@@ -120,25 +120,33 @@ export function MenuPage() {
       {isLoading && schedules.length === 0 ? (
         <div className="space-y-8">
           {/* Breakfast Section Skeleton */}
-          <section>
-            <div className="h-6 w-32 bg-gray-200 rounded animate-pulse mb-4" />
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              <CardSkeleton />
-              <CardSkeleton />
-              <CardSkeleton />
-              <CardSkeleton />
-            </div>
-          </section>
+          {(mealTypeFilter === 'all' || mealTypeFilter === 'breakfast') && (
+            <section>
+              <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                <span className="text-2xl">🌅</span> Breakfast
+              </h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                <CardSkeleton />
+                <CardSkeleton />
+                <CardSkeleton />
+                <CardSkeleton />
+              </div>
+            </section>
+          )}
           {/* Lunch Section Skeleton */}
-          <section>
-            <div className="h-6 w-32 bg-gray-200 rounded animate-pulse mb-4" />
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              <CardSkeleton />
-              <CardSkeleton />
-              <CardSkeleton />
-              <CardSkeleton />
-            </div>
-          </section>
+          {(mealTypeFilter === 'all' || mealTypeFilter === 'lunch') && (
+            <section>
+              <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                <span className="text-2xl">☀️</span> Lunch
+              </h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                <CardSkeleton />
+                <CardSkeleton />
+                <CardSkeleton />
+                <CardSkeleton />
+              </div>
+            </section>
+          )}
         </div>
       ) : filteredSchedules.length === 0 ? (
         <Card>
