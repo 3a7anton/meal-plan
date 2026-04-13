@@ -270,7 +270,7 @@ const bn: Translations = {
   price: 'মূল্য',
   description: 'বিবরণ',
   timeSlot: 'সময়',
-  bookIn: 'বুক করুন',
+  bookIn: 'বুকিং শুরু হবে',
   hourShort: 'ঘণ্টা',
   minuteShort: 'মিনিট',
   confirmBooking: 'বুকিং নিশ্চিত করুন',
