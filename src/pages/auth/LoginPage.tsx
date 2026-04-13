@@ -11,6 +11,7 @@ import toast from 'react-hot-toast'
 const loginSchema = z.object({
   email: z.string().email('Please enter a valid email'),
   password: z.string().min(6, 'Password must be at least 6 characters'),
+  rememberMe: z.boolean().optional(),
 })
 
 type LoginForm = z.infer<typeof loginSchema>
@@ -32,7 +33,7 @@ export function LoginPage() {
   const onSubmit = async (data: LoginForm) => {
     setError(null)
     setIsPendingApproval(false)
-    const result = await signIn(data.email, data.password)
+    const result = await signIn(data.email, data.password, data.rememberMe)
 
     if (result.error) {
       if (result.pendingApproval) {
@@ -106,6 +107,19 @@ export function LoginPage() {
                 error={errors.password?.message}
                 {...register('password')}
               />
+
+              {/* Remember Me */}
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="rememberMe"
+                  {...register('rememberMe')}
+                  className="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                />
+                <label htmlFor="rememberMe" className="text-sm text-gray-600">
+                  Remember me
+                </label>
+              </div>
 
               <Button
                 type="submit"

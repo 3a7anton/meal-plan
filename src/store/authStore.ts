@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { supabase } from '../lib/supabaseClient'
+import { supabase, setAuthStorage } from '../lib/supabaseClient'
 import type { Profile } from '../types'
 import type { User, Session } from '@supabase/supabase-js'
 
@@ -12,7 +12,7 @@ interface AuthState {
   
   // Actions
   initialize: () => Promise<void>
-  signIn: (email: string, password: string) => Promise<{ error: Error | null; pendingApproval?: boolean }>
+  signIn: (email: string, password: string, rememberMe?: boolean) => Promise<{ error: Error | null; pendingApproval?: boolean }>
   signUp: (data: SignUpData) => Promise<{ error: Error | null }>
   signOut: () => Promise<void>
   fetchProfile: (userId: string) => Promise<void>
@@ -66,9 +66,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
   },
 
-  signIn: async (email: string, password: string) => {
+  signIn: async (email: string, password: string, rememberMe = false) => {
     set({ isLoading: true })
     try {
+      // Set storage type based on rememberMe (false = sessionStorage, true = localStorage)
+      setAuthStorage(!rememberMe)
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,

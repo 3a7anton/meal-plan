@@ -31,9 +31,11 @@ export function Sidebar({ isAdmin = false }: SidebarProps) {
     closeMobileMenu()
   }, [location.pathname, closeMobileMenu])
 
-  const handleSignOut = async () => {
-    await signOut()
+  const handleSignOut = () => {
+    // Navigate immediately for instant feedback, then sign out
     navigate('/login')
+    // Use setTimeout to allow navigation to start before async cleanup
+    setTimeout(() => signOut(), 0)
   }
 
   const employeeLinks = [
