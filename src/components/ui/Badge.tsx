@@ -1,4 +1,5 @@
 import { cn } from '../../lib/utils'
+import { useTranslation } from '../../hooks/useTranslation'
 
 interface BadgeProps {
   children: React.ReactNode
@@ -32,6 +33,7 @@ export function Badge({ children, variant = 'default', className }: BadgeProps) 
 }
 
 export function StatusBadge({ status }: { status: string }) {
+  const { t } = useTranslation()
   const statusVariant: Record<string, 'pending' | 'confirmed' | 'denied' | 'cancelled'> = {
     pending: 'pending',
     confirmed: 'confirmed',
@@ -41,7 +43,7 @@ export function StatusBadge({ status }: { status: string }) {
 
   return (
     <Badge variant={statusVariant[status] || 'default'}>
-      {status.charAt(0).toUpperCase() + status.slice(1)}
+      {t(status)}
     </Badge>
   )
 }

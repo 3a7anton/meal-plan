@@ -84,3 +84,15 @@ export function getCapacityIndicator(remaining: number): {
   }
   return { color: 'text-green-600 bg-green-50', label: `${remaining} available` }
 }
+
+// Convert English numerals to Bengali numerals
+const bengaliNumerals = ['০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯']
+
+export function toBengaliNumber(num: number | string): string {
+  return num.toString().split('').map(char => {
+    if (char >= '0' && char <= '9') {
+      return bengaliNumerals[parseInt(char)]
+    }
+    return char
+  }).join('')
+}

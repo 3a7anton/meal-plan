@@ -257,7 +257,13 @@ export function DashboardPage() {
             ) : (
               <div className="space-y-4">
                 {upcomingBookings.map((booking) => (
-                  <BookingCard key={booking.id} booking={booking} />
+                  <Link 
+                    key={booking.id} 
+                    to="/bookings"
+                    className="block"
+                  >
+                    <BookingCard booking={booking} clickable={false} />
+                  </Link>
                 ))}
               </div>
             )}
@@ -283,7 +289,13 @@ export function DashboardPage() {
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {todaysSchedules.slice(0, 4).map((schedule) => (
-                  <MealCard key={schedule.id} schedule={schedule} />
+                  <Link 
+                    key={schedule.id} 
+                    to="/menu"
+                    className="block"
+                  >
+                    <MealCard schedule={schedule} />
+                  </Link>
                 ))}
               </div>
             )}

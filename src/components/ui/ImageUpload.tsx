@@ -1,6 +1,7 @@
 import { useState, useRef, type ChangeEvent } from 'react'
 import { Upload, X, Loader2 } from 'lucide-react'
 import { supabase } from '../../lib/supabaseClient'
+import { useTranslation } from '../../hooks/useTranslation'
 import toast from 'react-hot-toast'
 
 interface ImageUploadProps {
@@ -13,6 +14,7 @@ export function ImageUpload({ currentUrl, onUpload, userId }: ImageUploadProps) 
   const [isUploading, setIsUploading] = useState(false)
   const [preview, setPreview] = useState<string | null>(currentUrl || null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const { t } = useTranslation()
 
   const handleFileSelect = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -20,13 +22,13 @@ export function ImageUpload({ currentUrl, onUpload, userId }: ImageUploadProps) 
 
     // Validate file type
     if (!file.type.startsWith('image/')) {
-      toast.error('Please select an image file')
+      toast.error(t('selectImageFile'))
       return
     }
 
     // Validate file size (max 2MB)
     if (file.size > 2 * 1024 * 1024) {
-      toast.error('File size must be less than 2MB')
+      toast.error(t('fileSizeError'))
       return
     }
 
@@ -59,10 +61,10 @@ export function ImageUpload({ currentUrl, onUpload, userId }: ImageUploadProps) 
         .getPublicUrl(filePath)
 
       onUpload(publicUrl)
-      toast.success('Image uploaded successfully')
+      toast.success(t('imageUploaded'))
     } catch (error) {
       console.error('Upload error:', error)
-      toast.error('Failed to upload image')
+      toast.error(t('imageUploadFailed'))
       // Reset preview on error
       setPreview(currentUrl || null)
     } finally {
@@ -140,17 +142,17 @@ export function ImageUpload({ currentUrl, onUpload, userId }: ImageUploadProps) 
           {isUploading ? (
             <>
               <Loader2 className="h-4 w-4 animate-spin" />
-              Uploading...
+              {t('uploading')}
             </>
           ) : (
             <>
               <Upload className="h-4 w-4" />
-              {preview ? 'Change Photo' : 'Upload Photo'}
+              {preview ? t('changePhoto') : t('uploadPhoto')}
             </>
           )}
         </label>
         <p className="text-xs text-gray-500">
-          Max 2MB • JPG, PNG, GIF
+          {t('maxFileSize')} • JPG, PNG, GIF
         </p>
       </div>
     </div>

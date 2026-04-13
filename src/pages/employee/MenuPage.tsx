@@ -83,10 +83,13 @@ export function MenuPage() {
               { value: 'all', label: t('all') },
               { value: 'breakfast', label: t('breakfast') },
               { value: 'lunch', label: t('lunch') },
+              { value: 'afternoon_snack', label: t('Afternoon snack') },
+              { value: 'evening_snack', label: t('Evening snack') },
+              { value: 'dinner', label: t('dinner') },
             ]}
             value={mealTypeFilter}
             onChange={(e) => setMealTypeFilter(e.target.value)}
-            className="w-40"
+            className="w-48"
           />
         </div>
       </div>

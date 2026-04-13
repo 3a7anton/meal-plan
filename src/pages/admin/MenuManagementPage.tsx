@@ -12,7 +12,7 @@ import toast from 'react-hot-toast'
 const mealSchema = z.object({
   name: z.string().min(2, 'Name is required'),
   description: z.string().optional(),
-  meal_type: z.enum(['breakfast', 'lunch']),
+  meal_type: z.enum(['breakfast', 'lunch', 'afternoon_snack', 'evening_snack', 'dinner']),
   image_url: z.string().url().optional().or(z.literal('')),
   price: z.number().min(0, 'Price must be 0 or more').default(0),
 })
@@ -440,6 +440,9 @@ export function MenuManagementPage() {
                 options={[
                   { value: 'breakfast', label: 'Breakfast' },
                   { value: 'lunch', label: 'Lunch' },
+                  { value: 'afternoon_snack', label: 'Afternoon Snack' },
+                  { value: 'evening_snack', label: 'Evening Snack' },
+                  { value: 'dinner', label: 'Dinner' },
                 ]}
                 {...mealForm.register('meal_type')}
               />

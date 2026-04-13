@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
-import { CalendarDays, RotateCcw } from 'lucide-react'
+import { CalendarDays, Calendar, Clock, User, Utensils, CreditCard } from 'lucide-react'
 import { useAuthStore, useBookingStore, useSettingsStore } from '../../store'
-import { Card, CardContent, Select, CardSkeleton } from '../../components/ui'
+import { Card, CardContent, Select, CardSkeleton, Button } from '../../components/ui'
 import { BookingCard } from '../../components/employee'
 import { useTranslation } from '../../hooks/useTranslation'
-import { ConfirmDialog } from '../../components/ui/Modal'
+import { ConfirmDialog, Modal } from '../../components/ui/Modal'
+import type { BookingWithDetails } from '../../types'
 import toast from 'react-hot-toast'
 
 export function BookingsPage() {
@@ -15,9 +16,8 @@ export function BookingsPage() {
   
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [cancellingBookingId, setCancellingBookingId] = useState<string | null>(null)
-  const [refundingBookingId, setRefundingBookingId] = useState<string | null>(null)
   const [isCancelling, setIsCancelling] = useState(false)
-  const [isRefunding, setIsRefunding] = useState(false)
+  const [viewingBooking, setViewingBooking] = useState<BookingWithDetails | null>(null)
 
   useEffect(() => {
     if (user) {
@@ -40,22 +40,6 @@ export function BookingsPage() {
     
     setIsCancelling(false)
     setCancellingBookingId(null)
-  }
-
-  const handleRefundBooking = async () => {
-    if (!refundingBookingId) return
-
-    setIsRefunding(true)
-    const result = await cancelBooking(refundingBookingId)
-    
-    if (result.error) {
-      toast.error(result.error.message)
-    } else {
-      toast.success(t('refundRequested'))
-    }
-    
-    setIsRefunding(false)
-    setRefundingBookingId(null)
   }
 
   const filteredBookings = bookings.filter((booking) => {
@@ -148,7 +132,7 @@ export function BookingsPage() {
                 key={booking.id}
                 booking={booking}
                 onCancel={(id) => setCancellingBookingId(id)}
-                onRefund={(id) => setRefundingBookingId(id)}
+                onView={(b) => setViewingBooking(b)}
                 cancellationTimeLimit={cancellationTimeLimit}
               />
             ))}
@@ -164,7 +148,11 @@ export function BookingsPage() {
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {pastBookings.map((booking) => (
-              <BookingCard key={booking.id} booking={booking} />
+              <BookingCard 
+                key={booking.id} 
+                booking={booking} 
+                onView={(b) => setViewingBooking(b)}
+              />
             ))}
           </div>
         </section>
@@ -185,28 +173,6 @@ export function BookingsPage() {
         </Card>
       )}
 
-      {/* Refund Confirmation Dialog */}
-      <ConfirmDialog
-        isOpen={!!refundingBookingId}
-        onClose={() => setRefundingBookingId(null)}
-        onConfirm={handleRefundBooking}
-        title={t('requestRefund')}
-        message={
-          <div className="space-y-2">
-            <div className="flex items-center gap-2 text-amber-600">
-              <RotateCcw className="h-5 w-5" />
-              <span className="font-medium">{t('requestRefund')}</span>
-            </div>
-            <p className="text-gray-600 text-sm">
-              {t('refundConfirmMsg')}
-            </p>
-          </div>
-        }
-        confirmText={t('requestRefund')}
-        variant="danger"
-        isLoading={isRefunding}
-      />
-
       {/* Return / Cancel Confirmation Dialog */}
       <ConfirmDialog
         isOpen={!!cancellingBookingId}
@@ -215,10 +181,6 @@ export function BookingsPage() {
         title={t('returnMeal')}
         message={
           <div className="space-y-2">
-            <div className="flex items-center gap-2 text-amber-600">
-              <RotateCcw className="h-5 w-5" />
-              <span className="font-medium">{t('returnMeal')}</span>
-            </div>
             <p className="text-gray-600 text-sm">
               {t('returnMealMsg')}
             </p>
@@ -228,6 +190,95 @@ export function BookingsPage() {
         variant="danger"
         isLoading={isCancelling}
       />
+
+      {/* View Booking Details Modal */}
+      {viewingBooking && (
+        <Modal
+          isOpen={!!viewingBooking}
+          onClose={() => setViewingBooking(null)}
+          title={t('bookingDetails')}
+          size="md"
+        >
+          <div className="p-6 space-y-6">
+            {/* Meal Info */}
+            <div className="flex items-start gap-4">
+              {viewingBooking.menu_schedule.meal.image_url ? (
+                <img 
+                  src={viewingBooking.menu_schedule.meal.image_url} 
+                  alt={viewingBooking.menu_schedule.meal.name}
+                  className="w-24 h-24 rounded-lg object-cover"
+                />
+              ) : (
+                <div className="w-24 h-24 rounded-lg bg-primary-100 flex items-center justify-center">
+                  <Utensils className="h-10 w-10 text-primary-400" />
+                </div>
+              )}
+              <div className="flex-1">
+                <span className="text-xs font-medium text-primary-600 uppercase tracking-wide">
+                  {t(viewingBooking.menu_schedule.meal.meal_type)}
+                </span>
+                <h3 className="font-semibold text-gray-900 text-lg">
+                  {viewingBooking.menu_schedule.meal.name}
+                </h3>
+                <p className="text-sm text-gray-500 mt-1">
+                  {viewingBooking.menu_schedule.meal.description}
+                </p>
+              </div>
+            </div>
+
+            {/* Details Grid */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="flex items-center gap-2 text-sm">
+                <Calendar className="h-4 w-4 text-gray-400" />
+                <span className="text-gray-600">{t('date')}:</span>
+                <span className="font-medium">
+                  {new Date(viewingBooking.menu_schedule.scheduled_date).toLocaleDateString()}
+                </span>
+              </div>
+              <div className="flex items-center gap-2 text-sm">
+                <Clock className="h-4 w-4 text-gray-400" />
+                <span className="text-gray-600">{t('time')}:</span>
+                <span className="font-medium">{viewingBooking.menu_schedule.time_slot}</span>
+              </div>
+              <div className="flex items-center gap-2 text-sm">
+                <CreditCard className="h-4 w-4 text-gray-400" />
+                <span className="text-gray-600">{t('price')}:</span>
+                <span className="font-medium">
+                  ৳{(viewingBooking.menu_schedule.price || viewingBooking.menu_schedule.meal.price || 0)}
+                </span>
+              </div>
+              <div className="flex items-center gap-2 text-sm">
+                <User className="h-4 w-4 text-gray-400" />
+                <span className="text-gray-600">{t('status')}:</span>
+                <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${
+                  viewingBooking.status === 'confirmed' ? 'bg-green-100 text-green-700' :
+                  viewingBooking.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
+                  viewingBooking.status === 'cancelled' ? 'bg-gray-100 text-gray-600' :
+                  'bg-red-100 text-red-700'
+                }`}>
+                  {t(viewingBooking.status)}
+                </span>
+              </div>
+            </div>
+
+            {/* Booked At */}
+            <div className="pt-4 border-t border-gray-200">
+              <p className="text-sm text-gray-500">
+                {t('bookedOn')} {new Date(viewingBooking.booked_at).toLocaleString()}
+              </p>
+            </div>
+
+            {/* Close Button */}
+            <Button 
+              variant="secondary" 
+              className="w-full"
+              onClick={() => setViewingBooking(null)}
+            >
+              {t('close')}
+            </Button>
+          </div>
+        </Modal>
+      )}
     </div>
   )
 }

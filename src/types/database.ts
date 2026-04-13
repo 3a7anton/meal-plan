@@ -53,7 +53,7 @@ export interface Database {
           id: string
           name: string
           description: string | null
-          meal_type: 'breakfast' | 'lunch'
+          meal_type: 'breakfast' | 'lunch' | 'afternoon_snack' | 'evening_snack' | 'dinner'
           image_url: string | null
           price: number
           is_active: boolean
@@ -63,7 +63,7 @@ export interface Database {
           id?: string
           name: string
           description?: string | null
-          meal_type: 'breakfast' | 'lunch'
+          meal_type: 'breakfast' | 'lunch' | 'afternoon_snack' | 'evening_snack' | 'dinner'
           image_url?: string | null
           price?: number
           is_active?: boolean
@@ -73,7 +73,7 @@ export interface Database {
           id?: string
           name?: string
           description?: string | null
-          meal_type?: 'breakfast' | 'lunch'
+          meal_type?: 'breakfast' | 'lunch' | 'afternoon_snack' | 'evening_snack' | 'dinner'
           image_url?: string | null
           price?: number
           is_active?: boolean
@@ -331,6 +331,9 @@ export interface BookingStatus {
 export interface MealType {
   breakfast: 'breakfast'
   lunch: 'lunch'
+  afternoon_snack: 'afternoon_snack'
+  evening_snack: 'evening_snack'
+  dinner: 'dinner'
 }
 
 export interface PaymentWithProfile extends Payment {

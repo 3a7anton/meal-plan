@@ -1,28 +1,30 @@
-import { Calendar, Clock, X, RotateCcw } from 'lucide-react'
+import { Calendar, Clock, X } from 'lucide-react'
 import { Card, CardContent, Button, StatusBadge } from '../ui'
 import { formatDate, formatTime } from '../../lib/utils'
+import { useTranslation } from '../../hooks/useTranslation'
 import type { BookingWithDetails } from '../../types'
 import { isCancellationAllowed, getBookingTimeRemaining } from '../../store'
 
 interface BookingCardProps {
   booking: BookingWithDetails
   onCancel?: (bookingId: string) => void
-  onRefund?: (bookingId: string) => void
+  onView?: (booking: BookingWithDetails) => void
   isCancelling?: boolean
-  isRefunding?: boolean
   cancellationTimeLimit?: number // in minutes
+  clickable?: boolean
 }
 
 export function BookingCard({ 
   booking, 
   onCancel, 
-  onRefund,
+  onView,
   isCancelling, 
-  isRefunding,
-  cancellationTimeLimit = 120 
+  cancellationTimeLimit = 120,
+  clickable = true
 }: BookingCardProps) {
   const { menu_schedule, status, booked_at } = booking
   const { meal, scheduled_date, time_slot } = menu_schedule
+  const { t } = useTranslation()
 
   const canCancel =
     (status === 'pending' || status === 'confirmed') &&
@@ -30,17 +32,25 @@ export function BookingCard({
 
   // Calculate time remaining for cancellation
   const timeRemaining = getBookingTimeRemaining(scheduled_date, time_slot, cancellationTimeLimit)
-  const isRefundable = status === 'confirmed' && canCancel
   const isPendingOrConfirmed = status === 'pending' || status === 'confirmed'
 
+  const handleClick = () => {
+    if (clickable && onView) {
+      onView(booking)
+    }
+  }
+
   return (
-    <Card className="overflow-hidden">
+    <Card 
+      className={`overflow-hidden ${clickable ? 'cursor-pointer hover:shadow-md transition-shadow' : ''}`}
+      onClick={handleClick}
+    >
       <CardContent className="space-y-3">
         {/* Header */}
         <div className="flex items-start justify-between">
           <div>
             <span className="text-xs font-medium text-primary-600 uppercase tracking-wide">
-              {meal.meal_type}
+              {t(meal.meal_type)}
             </span>
             <h3 className="font-semibold text-gray-900 mt-1">{meal.name}</h3>
           </div>
@@ -67,14 +77,14 @@ export function BookingCard({
         {/* Price */}
         {meal.price > 0 && (
           <div className="flex items-center justify-between text-sm">
-            <span className="text-gray-500">Meal cost</span>
+            <span className="text-gray-500">{t('mealCost')}</span>
             <span className="font-semibold text-primary-700">৳{meal.price}</span>
           </div>
         )}
 
         {/* Booked At */}
         <p className="text-xs text-gray-400">
-          Booked on {new Date(booked_at).toLocaleDateString()}
+          {t('bookedOn')} {new Date(booked_at).toLocaleDateString()}
         </p>
 
         {/* Cancel/Refund Buttons */}
@@ -83,39 +93,27 @@ export function BookingCard({
             variant="danger"
             size="sm"
             className="w-full"
-            onClick={() => onCancel(booking.id)}
+            onClick={(e) => {
+              e.stopPropagation()
+              onCancel(booking.id)
+            }}
             disabled={isCancelling}
             isLoading={isCancelling}
           >
             <X className="h-4 w-4 mr-1" />
-            Cancel Booking
-          </Button>
-        )}
-
-        {/* Refund Button - only for confirmed bookings */}
-        {onRefund && isRefundable && (
-          <Button
-            variant="secondary"
-            size="sm"
-            className="w-full"
-            onClick={() => onRefund(booking.id)}
-            disabled={isRefunding}
-            isLoading={isRefunding}
-          >
-            <RotateCcw className="h-4 w-4 mr-1" />
-            Request Refund
+            {t('cancelBooking')}
           </Button>
         )}
 
         {/* Time remaining for cancellation */}
         {isPendingOrConfirmed && !canCancel && (
           <p className="text-xs text-red-500 text-center">
-            Cancellation window closed
+            {t('cancellationWindowClosed')}
           </p>
         )}
         {isPendingOrConfirmed && canCancel && timeRemaining.totalMinutes > 0 && (
           <p className="text-xs text-amber-600 text-center">
-            Cancel within {timeRemaining.hours > 0 ? `${timeRemaining.hours}h ` : ''}{timeRemaining.minutes}m
+            {t('cancelWithin')} {timeRemaining.hours > 0 ? `${timeRemaining.hours}${t('hourShort')} ` : ''}{timeRemaining.minutes}{t('minuteShort')}
           </p>
         )}
       </CardContent>

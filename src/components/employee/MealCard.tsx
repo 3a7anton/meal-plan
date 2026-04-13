@@ -1,6 +1,6 @@
 import { UtensilsCrossed, Clock, Users } from 'lucide-react'
 import { Card, CardContent, Button } from '../ui'
-import { formatTime } from '../../lib/utils'
+import { formatTime, toBengaliNumber } from '../../lib/utils'
 import { useTranslation } from '../../hooks/useTranslation'
 import type { MenuScheduleWithMeal } from '../../types'
 import { BookingTimer } from './BookingTimer'
@@ -22,20 +22,22 @@ export function MealCard({
   bookingTimeLimit = 60 
 }: MealCardProps) {
   const { meal, time_slot, remaining_capacity = 0, capacity, scheduled_date, price: schedulePrice } = schedule
-  const { t } = useTranslation()
+  const { t, language } = useTranslation()
+  const isBangla = language === 'bn'
   
   // Use schedule price if set, otherwise fall back to meal price
   const displayPrice = schedulePrice ?? meal.price ?? 0
   
   // Get capacity indicator with translation
   const getCapacityInfo = (remaining: number) => {
+    const remainingBn = isBangla ? toBengaliNumber(remaining) : remaining
     if (remaining <= 0) {
       return { color: 'text-red-600 bg-red-50', label: t('full') }
     }
     if (remaining <= 3) {
-      return { color: 'text-yellow-600 bg-yellow-50', label: `${remaining} ${t('left')}` }
+      return { color: 'text-yellow-600 bg-yellow-50', label: `${remainingBn} ${t('left')}` }
     }
-    return { color: 'text-green-600 bg-green-50', label: `${remaining} ${t('available')}` }
+    return { color: 'text-green-600 bg-green-50', label: `${remainingBn} ${t('available')}` }
   }
   
   const capacityInfo = getCapacityInfo(remaining_capacity)
@@ -80,7 +82,7 @@ export function MealCard({
         <div className="flex items-center justify-between">
           {displayPrice > 0 ? (
             <span className="text-sm font-semibold text-primary-700 bg-primary-50 px-2 py-0.5 rounded-md">
-              ৳{displayPrice}
+              ৳{isBangla ? toBengaliNumber(displayPrice) : displayPrice}
             </span>
           ) : (
             <span className="text-sm text-green-600 font-medium">{t('free')}</span>
@@ -96,7 +98,10 @@ export function MealCard({
             </div>
             <div className="flex items-center gap-1">
               <Users className="h-4 w-4" />
-              <span>{remaining_capacity}/{capacity}</span>
+              <span>
+                {isBangla ? toBengaliNumber(remaining_capacity) : remaining_capacity}/
+                {isBangla ? toBengaliNumber(capacity) : capacity}
+              </span>
             </div>
           </div>
           <BookingTimer 
