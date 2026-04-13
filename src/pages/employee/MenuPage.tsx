@@ -221,9 +221,10 @@ export function MenuPage() {
         isOpen={!!bookingScheduleId}
         onClose={() => setBookingScheduleId(null)}
         onConfirm={handleBookMeal}
-        title="Confirm Booking"
-        message="Are you sure you want to book this meal? Your booking will be pending until approved by an admin."
-        confirmText="Book Meal"
+        title={t('confirmBooking')}
+        message={t('confirmBookingMsg')}
+        confirmText={t('book')}
+        cancelText={t('cancel')}
         isLoading={isBooking}
       />
     </div>

@@ -1,6 +1,7 @@
 import { UtensilsCrossed, Clock, Users } from 'lucide-react'
 import { Card, CardContent, Button } from '../ui'
-import { formatTime, getCapacityIndicator } from '../../lib/utils'
+import { formatTime } from '../../lib/utils'
+import { useTranslation } from '../../hooks/useTranslation'
 import type { MenuScheduleWithMeal } from '../../types'
 import { BookingTimer } from './BookingTimer'
 import { isBookingAllowed } from '../../store'
@@ -20,8 +21,24 @@ export function MealCard({
   userHasBooking,
   bookingTimeLimit = 60 
 }: MealCardProps) {
-  const { meal, time_slot, remaining_capacity = 0, capacity, scheduled_date } = schedule
-  const capacityInfo = getCapacityIndicator(remaining_capacity)
+  const { meal, time_slot, remaining_capacity = 0, capacity, scheduled_date, price: schedulePrice } = schedule
+  const { t } = useTranslation()
+  
+  // Use schedule price if set, otherwise fall back to meal price
+  const displayPrice = schedulePrice ?? meal.price ?? 0
+  
+  // Get capacity indicator with translation
+  const getCapacityInfo = (remaining: number) => {
+    if (remaining <= 0) {
+      return { color: 'text-red-600 bg-red-50', label: t('full') }
+    }
+    if (remaining <= 3) {
+      return { color: 'text-yellow-600 bg-yellow-50', label: `${remaining} ${t('left')}` }
+    }
+    return { color: 'text-green-600 bg-green-50', label: `${remaining} ${t('available')}` }
+  }
+  
+  const capacityInfo = getCapacityInfo(remaining_capacity)
   const isFull = remaining_capacity <= 0
   const bookingAllowed = isBookingAllowed(scheduled_date, time_slot, bookingTimeLimit)
 
@@ -44,7 +61,7 @@ export function MealCard({
         {/* Meal Type Badge */}
         <div className="flex items-center justify-between">
           <span className="text-xs font-medium text-primary-600 uppercase tracking-wide">
-            {meal.meal_type}
+            {t(meal.meal_type)}
           </span>
           <div className={`px-2 py-1 rounded-full text-xs font-medium ${capacityInfo.color}`}>
             {capacityInfo.label}
@@ -61,12 +78,12 @@ export function MealCard({
 
         {/* Price */}
         <div className="flex items-center justify-between">
-          {meal.price > 0 ? (
+          {displayPrice > 0 ? (
             <span className="text-sm font-semibold text-primary-700 bg-primary-50 px-2 py-0.5 rounded-md">
-              ৳{meal.price}
+              ৳{displayPrice}
             </span>
           ) : (
-            <span className="text-sm text-green-600 font-medium">Free</span>
+            <span className="text-sm text-green-600 font-medium">{t('free')}</span>
           )}
         </div>
 
@@ -98,9 +115,9 @@ export function MealCard({
             disabled={isFull || isBooking || userHasBooking || !bookingAllowed}
             isLoading={isBooking}
           >
-            {userHasBooking ? 'Already Booked' : 
-             !bookingAllowed ? 'Booking Closed' :
-             isFull ? 'Full' : 'Book Meal'}
+            {userHasBooking ? t('alreadyBooked') : 
+             !bookingAllowed ? t('bookingClosed') :
+             isFull ? t('full') : t('book')}
           </Button>
         )}
       </CardContent>

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Clock } from 'lucide-react'
 import { getBookingTimeRemaining } from '../../store'
+import { useTranslation } from '../../hooks/useTranslation'
 
 interface BookingTimerProps {
   scheduledDate: string
@@ -12,6 +13,7 @@ export function BookingTimer({ scheduledDate, timeSlot, bookingTimeLimit }: Book
   const [timeLeft, setTimeLeft] = useState(() =>
     getBookingTimeRemaining(scheduledDate, timeSlot, bookingTimeLimit)
   )
+  const { t } = useTranslation()
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -30,16 +32,16 @@ export function BookingTimer({ scheduledDate, timeSlot, bookingTimeLimit }: Book
     return (
       <div className="flex items-center gap-1 text-red-600 font-medium">
         <Clock className="h-4 w-4" />
-        <span className="text-xs">Booking Closed</span>
+        <span className="text-xs">{t('bookingClosed')}</span>
       </div>
     )
   }
 
   const formatTime = () => {
     if (timeLeft.hours > 0) {
-      return `${timeLeft.hours}h ${timeLeft.minutes}m`
+      return `${timeLeft.hours}${t('hourShort')} ${timeLeft.minutes}${t('minuteShort')}`
     }
-    return `${timeLeft.minutes}m`
+    return `${timeLeft.minutes}${t('minuteShort')}`
   }
 
   const getColorClass = () => {
@@ -52,7 +54,7 @@ export function BookingTimer({ scheduledDate, timeSlot, bookingTimeLimit }: Book
     <div className={`flex items-center gap-1 font-medium ${getColorClass()}`}>
       <Clock className="h-4 w-4 animate-pulse" />
       <span className="text-xs">
-        Book in {formatTime()}
+        {t('bookIn')} {formatTime()}
       </span>
     </div>
   )
