@@ -56,6 +56,9 @@ export function MenuPage() {
 
   const breakfastSchedules = filteredSchedules.filter((s) => s.meal?.meal_type === 'breakfast')
   const lunchSchedules = filteredSchedules.filter((s) => s.meal?.meal_type === 'lunch')
+  const afternoonSnackSchedules = filteredSchedules.filter((s) => s.meal?.meal_type === 'afternoon_snack')
+  const eveningSnackSchedules = filteredSchedules.filter((s) => s.meal?.meal_type === 'evening_snack')
+  const dinnerSchedules = filteredSchedules.filter((s) => s.meal?.meal_type === 'dinner')
 
   // Check if user has booking at specific time slot
   const getUserBookingAtSlot = (date: string, timeSlot: string) => {
@@ -152,6 +155,48 @@ export function MenuPage() {
               </div>
             </section>
           )}
+          {/* Afternoon Snack Section Skeleton */}
+          {(mealTypeFilter === 'all' || mealTypeFilter === 'afternoon_snack') && (
+            <section>
+              <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                <span className="text-2xl">🍵</span> Afternoon Snack
+              </h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                <CardSkeleton />
+                <CardSkeleton />
+                <CardSkeleton />
+                <CardSkeleton />
+              </div>
+            </section>
+          )}
+          {/* Evening Snack Section Skeleton */}
+          {(mealTypeFilter === 'all' || mealTypeFilter === 'evening_snack') && (
+            <section>
+              <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                <span className="text-2xl">🌆</span> Evening Snack
+              </h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                <CardSkeleton />
+                <CardSkeleton />
+                <CardSkeleton />
+                <CardSkeleton />
+              </div>
+            </section>
+          )}
+          {/* Dinner Section Skeleton */}
+          {(mealTypeFilter === 'all' || mealTypeFilter === 'dinner') && (
+            <section>
+              <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                <span className="text-2xl">🌙</span> Dinner
+              </h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                <CardSkeleton />
+                <CardSkeleton />
+                <CardSkeleton />
+                <CardSkeleton />
+              </div>
+            </section>
+          )}
         </div>
       ) : filteredSchedules.length === 0 ? (
         <Card>
@@ -199,6 +244,84 @@ export function MenuPage() {
               </h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                 {lunchSchedules.map((schedule) => {
+                  const existingBooking = getUserBookingAtSlot(
+                    schedule.scheduled_date,
+                    schedule.time_slot
+                  )
+                  return (
+                    <MealCard
+                      key={schedule.id}
+                      schedule={schedule}
+                      onBook={(id) => setBookingScheduleId(id)}
+                      userHasBooking={!!existingBooking}
+                      bookingTimeLimit={schedule.booking_time_limit || 60}
+                    />
+                  )
+                })}
+              </div>
+            </section>
+          )}
+
+          {/* Afternoon Snack Section */}
+          {(mealTypeFilter === 'all' || mealTypeFilter === 'afternoon_snack') && afternoonSnackSchedules.length > 0 && (
+            <section>
+              <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                <span className="text-2xl">🍵</span> Afternoon Snack
+              </h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {afternoonSnackSchedules.map((schedule) => {
+                  const existingBooking = getUserBookingAtSlot(
+                    schedule.scheduled_date,
+                    schedule.time_slot
+                  )
+                  return (
+                    <MealCard
+                      key={schedule.id}
+                      schedule={schedule}
+                      onBook={(id) => setBookingScheduleId(id)}
+                      userHasBooking={!!existingBooking}
+                      bookingTimeLimit={schedule.booking_time_limit || 60}
+                    />
+                  )
+                })}
+              </div>
+            </section>
+          )}
+
+          {/* Evening Snack Section */}
+          {(mealTypeFilter === 'all' || mealTypeFilter === 'evening_snack') && eveningSnackSchedules.length > 0 && (
+            <section>
+              <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                <span className="text-2xl">🌆</span> Evening Snack
+              </h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {eveningSnackSchedules.map((schedule) => {
+                  const existingBooking = getUserBookingAtSlot(
+                    schedule.scheduled_date,
+                    schedule.time_slot
+                  )
+                  return (
+                    <MealCard
+                      key={schedule.id}
+                      schedule={schedule}
+                      onBook={(id) => setBookingScheduleId(id)}
+                      userHasBooking={!!existingBooking}
+                      bookingTimeLimit={schedule.booking_time_limit || 60}
+                    />
+                  )
+                })}
+              </div>
+            </section>
+          )}
+
+          {/* Dinner Section */}
+          {(mealTypeFilter === 'all' || mealTypeFilter === 'dinner') && dinnerSchedules.length > 0 && (
+            <section>
+              <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                <span className="text-2xl">🌙</span> Dinner
+              </h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {dinnerSchedules.map((schedule) => {
                   const existingBooking = getUserBookingAtSlot(
                     schedule.scheduled_date,
                     schedule.time_slot

@@ -21,7 +21,7 @@ export function DashboardPage() {
 
   useEffect(() => {
     if (user) {
-      fetchUserBookings(user.id)
+      fetchUserBookings(user.id, true) // Force refresh to get latest bookings
       fetchDueAmount(user.id)
     }
     fetchSchedules(today)

@@ -1,6 +1,6 @@
 import { Calendar, Clock, X } from 'lucide-react'
 import { Card, CardContent, Button, StatusBadge } from '../ui'
-import { formatDate, formatTime } from '../../lib/utils'
+import { formatDate, formatTime, toBengaliNumber } from '../../lib/utils'
 import { useTranslation } from '../../hooks/useTranslation'
 import type { BookingWithDetails } from '../../types'
 import { isCancellationAllowed, getBookingTimeRemaining } from '../../store'
@@ -23,8 +23,12 @@ export function BookingCard({
   clickable = true
 }: BookingCardProps) {
   const { menu_schedule, status, booked_at } = booking
-  const { meal, scheduled_date, time_slot } = menu_schedule
-  const { t } = useTranslation()
+  const { meal, scheduled_date, time_slot, price: schedulePrice } = menu_schedule
+  const { t, language } = useTranslation()
+  const isBangla = language === 'bn'
+  
+  // Use schedule price if set, otherwise fall back to meal price
+  const displayPrice = schedulePrice ?? meal.price ?? 0
 
   const canCancel =
     (status === 'pending' || status === 'confirmed') &&
@@ -75,10 +79,10 @@ export function BookingCard({
         </div>
 
         {/* Price */}
-        {meal.price > 0 && (
+        {displayPrice > 0 && (
           <div className="flex items-center justify-between text-sm">
             <span className="text-gray-500">{t('mealCost')}</span>
-            <span className="font-semibold text-primary-700">৳{meal.price}</span>
+            <span className="font-semibold text-primary-700">৳{isBangla ? toBengaliNumber(displayPrice) : displayPrice}</span>
           </div>
         )}
 

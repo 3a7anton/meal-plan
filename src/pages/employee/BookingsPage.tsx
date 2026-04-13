@@ -21,7 +21,7 @@ export function BookingsPage() {
 
   useEffect(() => {
     if (user) {
-      fetchUserBookings(user.id)
+      fetchUserBookings(user.id, true) // Force refresh to get latest bookings
       fetchSettings()
     }
   }, [user, fetchUserBookings, fetchSettings])

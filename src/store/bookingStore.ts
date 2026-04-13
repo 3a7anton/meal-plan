@@ -128,8 +128,8 @@ export const useBookingStore = create<BookingState>((set, get) => ({
         throw new Error(error.message)
       }
 
-      // Refresh bookings
-      await get().fetchUserBookings(userId)
+      // Refresh bookings (force refresh to bypass cache)
+      await get().fetchUserBookings(userId, true)
 
       return { error: null }
     } catch (error) {
