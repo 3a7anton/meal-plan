@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Search, Shield, ShieldOff, UserX, UserCheck, Users, DollarSign, AlertTriangle } from 'lucide-react'
-import { Card, CardContent, CardHeader, CardTitle, Button, Input, Select, Loading, Badge } from '../../components/ui'
+import { Card, CardContent, CardHeader, CardTitle, Button, Input, Select, Badge, CardSkeleton, TableSkeleton } from '../../components/ui'
 import { ConfirmDialog } from '../../components/ui/Modal'
 import { supabase } from '../../lib/supabaseClient'
 import type { Profile } from '../../types'
@@ -161,8 +161,33 @@ export function UserManagementPage() {
 
   const pendingCount = users.filter((u) => !u.is_active).length
 
-  if (isLoading) {
-    return <Loading fullScreen text="Loading users..." />
+  const isInitialLoading = isLoading && users.length === 0
+
+  if (isInitialLoading) {
+    return (
+      <div className="space-y-6">
+        {/* Header Skeleton */}
+        <div>
+          <div className="h-8 w-48 bg-gray-200 rounded animate-pulse mb-2" />
+          <div className="h-4 w-64 bg-gray-200 rounded animate-pulse" />
+        </div>
+
+        {/* Limit Warning Skeleton */}
+        <CardSkeleton />
+
+        {/* Controls Skeleton */}
+        <div className="flex gap-4">
+          <div className="h-10 w-40 bg-gray-200 rounded animate-pulse" />
+          <div className="h-10 w-48 bg-gray-200 rounded animate-pulse" />
+          <div className="h-10 w-64 bg-gray-200 rounded animate-pulse" />
+        </div>
+
+        {/* Table Skeleton */}
+        <Card>
+          <TableSkeleton rows={8} />
+        </Card>
+      </div>
+    )
   }
 
   return (

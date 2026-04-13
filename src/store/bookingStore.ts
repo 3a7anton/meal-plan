@@ -6,23 +6,41 @@ interface BookingState {
   bookings: BookingWithDetails[]
   isLoading: boolean
   error: string | null
-  
+  lastFetched: number | null
+  cachedUserId: string | null
+
   // Actions
-  fetchUserBookings: (userId: string) => Promise<void>
-  fetchAllBookings: () => Promise<BookingWithDetails[]>
+  fetchUserBookings: (userId: string, forceRefresh?: boolean) => Promise<void>
+  fetchAllBookings: (forceRefresh?: boolean) => Promise<BookingWithDetails[]>
   createBooking: (menuScheduleId: string, userId: string, notes?: string) => Promise<{ error: Error | null }>
   cancelBooking: (bookingId: string) => Promise<{ error: Error | null }>
   updateBookingStatus: (bookingId: string, status: 'confirmed' | 'denied' | 'cancelled') => Promise<{ error: Error | null }>
   checkConflict: (userId: string, date: string, timeSlot: string) => Promise<boolean>
 }
 
+const CACHE_DURATION = 5 * 60 * 1000 // 5 minutes
+
 export const useBookingStore = create<BookingState>((set, get) => ({
   bookings: [],
   isLoading: false,
   error: null,
+  lastFetched: null,
+  cachedUserId: null,
 
-  fetchUserBookings: async (userId: string) => {
-    set({ isLoading: true, error: null })
+  fetchUserBookings: async (userId: string, forceRefresh = false) => {
+    const { lastFetched, cachedUserId, bookings } = get()
+
+    // Return cached data if valid (same user, within cache duration, and not forced)
+    const isCacheValid = lastFetched &&
+      cachedUserId === userId &&
+      Date.now() - lastFetched < CACHE_DURATION &&
+      !forceRefresh
+
+    if (isCacheValid && bookings.length > 0) {
+      return
+    }
+
+    set({ isLoading: bookings.length === 0, error: null }) // Only show loading if no cached data
     try {
       const { data, error } = await supabase
         .from('bookings')
@@ -38,7 +56,11 @@ export const useBookingStore = create<BookingState>((set, get) => ({
 
       if (error) throw error
 
-      set({ bookings: data as BookingWithDetails[] })
+      set({
+        bookings: data as BookingWithDetails[],
+        lastFetched: Date.now(),
+        cachedUserId: userId
+      })
     } catch (error) {
       set({ error: (error as Error).message })
     } finally {
@@ -46,8 +68,19 @@ export const useBookingStore = create<BookingState>((set, get) => ({
     }
   },
 
-  fetchAllBookings: async () => {
-    set({ isLoading: true, error: null })
+  fetchAllBookings: async (forceRefresh = false) => {
+    const { lastFetched, bookings } = get()
+
+    // Return cached data if valid
+    const isCacheValid = lastFetched &&
+      Date.now() - lastFetched < CACHE_DURATION &&
+      !forceRefresh
+
+    if (isCacheValid && bookings.length > 0) {
+      return bookings
+    }
+
+    set({ isLoading: bookings.length === 0, error: null })
     try {
       const { data, error } = await supabase
         .from('bookings')
@@ -63,7 +96,11 @@ export const useBookingStore = create<BookingState>((set, get) => ({
 
       if (error) throw error
 
-      set({ bookings: data as BookingWithDetails[] })
+      set({
+        bookings: data as BookingWithDetails[],
+        lastFetched: Date.now(),
+        cachedUserId: 'all'
+      })
       return data as BookingWithDetails[]
     } catch (error) {
       set({ error: (error as Error).message })
@@ -178,18 +215,34 @@ interface MenuState {
   schedules: MenuScheduleWithMeal[]
   isLoading: boolean
   error: string | null
-  
-  fetchSchedules: (date: string) => Promise<void>
-  fetchSchedulesByDateRange: (startDate: string, endDate: string) => Promise<void>
+  lastFetched: number | null
+  cachedDate: string | null
+
+  fetchSchedules: (date: string, forceRefresh?: boolean) => Promise<void>
+  fetchSchedulesByDateRange: (startDate: string, endDate: string, forceRefresh?: boolean) => Promise<void>
 }
 
-export const useMenuStore = create<MenuState>((set) => ({
+export const useMenuStore = create<MenuState>((set, get) => ({
   schedules: [],
   isLoading: false,
   error: null,
+  lastFetched: null,
+  cachedDate: null,
 
-  fetchSchedules: async (date: string) => {
-    set({ isLoading: true, error: null })
+  fetchSchedules: async (date: string, forceRefresh = false) => {
+    const { lastFetched, cachedDate, schedules } = get()
+
+    // Return cached data if valid (same date, within cache duration)
+    const isCacheValid = lastFetched &&
+      cachedDate === date &&
+      Date.now() - lastFetched < CACHE_DURATION &&
+      !forceRefresh
+
+    if (isCacheValid && schedules.length > 0) {
+      return
+    }
+
+    set({ isLoading: schedules.length === 0, error: null })
     try {
       // Fetch schedules and booking counts in parallel
       const [{ data: schedulesData, error: schedulesError }, { data: bookingsData }] = await Promise.all([
@@ -227,7 +280,11 @@ export const useMenuStore = create<MenuState>((set) => ({
         remaining_capacity: schedule.capacity - (bookingCounts[schedule.id] || 0),
       }))
 
-      set({ schedules: schedulesWithCounts as MenuScheduleWithMeal[] })
+      set({
+        schedules: schedulesWithCounts as MenuScheduleWithMeal[],
+        lastFetched: Date.now(),
+        cachedDate: date
+      })
     } catch (error) {
       set({ error: (error as Error).message })
     } finally {
@@ -235,8 +292,20 @@ export const useMenuStore = create<MenuState>((set) => ({
     }
   },
 
-  fetchSchedulesByDateRange: async (startDate: string, endDate: string) => {
-    set({ isLoading: true, error: null })
+  fetchSchedulesByDateRange: async (startDate: string, endDate: string, forceRefresh = false) => {
+    const { lastFetched, cachedDate, schedules } = get()
+
+    // Return cached data if valid
+    const isCacheValid = lastFetched &&
+      cachedDate === `${startDate}-${endDate}` &&
+      Date.now() - lastFetched < CACHE_DURATION &&
+      !forceRefresh
+
+    if (isCacheValid && schedules.length > 0) {
+      return
+    }
+
+    set({ isLoading: schedules.length === 0, error: null })
     try {
       const { data, error } = await supabase
         .from('menu_schedules')
@@ -252,7 +321,11 @@ export const useMenuStore = create<MenuState>((set) => ({
 
       if (error) throw error
 
-      set({ schedules: data as MenuScheduleWithMeal[] })
+      set({
+        schedules: data as MenuScheduleWithMeal[],
+        lastFetched: Date.now(),
+        cachedDate: `${startDate}-${endDate}`
+      })
     } catch (error) {
       set({ error: (error as Error).message })
     } finally {

@@ -8,11 +8,10 @@ if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('Missing Supabase environment variables')
 }
 
-// Use sessionStorage so each browser tab has its own independent session.
-// This allows two different users to be logged in on separate tabs simultaneously.
+// Use localStorage so session persists across tabs and page refreshes
 export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
   auth: {
-    storage: sessionStorage,
+    storage: localStorage,
     persistSession: true,
     autoRefreshToken: true,
     detectSessionInUrl: true,

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { UtensilsCrossed, CalendarDays, Clock, ArrowRight, DollarSign, AlertCircle } from 'lucide-react'
 import { useAuthStore, useBookingStore, useMenuStore } from '../../store'
-import { Card, CardContent, CardHeader, CardTitle, Button, Loading } from '../../components/ui'
+import { Card, CardContent, CardHeader, CardTitle, Button, CardSkeleton } from '../../components/ui'
 import { BookingCard, MealCard } from '../../components/employee'
 import { format } from 'date-fns'
 import { supabase } from '../../lib/supabaseClient'
@@ -94,8 +94,29 @@ export function DashboardPage() {
 
   const todaysSchedules = schedules.slice(0, 4)
 
-  if (bookingsLoading && menuLoading) {
-    return <Loading fullScreen text="Loading dashboard..." />
+  const isInitialLoading = bookingsLoading && bookings.length === 0 && menuLoading && schedules.length === 0
+
+  if (isInitialLoading) {
+    return (
+      <div className="space-y-6">
+        {/* Welcome Header Skeleton */}
+        <div className="bg-gradient-to-r from-primary-600 to-primary-700 rounded-2xl p-6 h-32 animate-pulse" />
+
+        {/* Stats Cards Skeleton */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <CardSkeleton />
+          <CardSkeleton />
+          <CardSkeleton />
+          <CardSkeleton />
+        </div>
+
+        {/* Main Content Skeleton */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <CardSkeleton />
+          <CardSkeleton />
+        </div>
+      </div>
+    )
   }
 
   const hasDue = !!(dueAmount && dueAmount > 0)

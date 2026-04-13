@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { CalendarDays, RotateCcw } from 'lucide-react'
 import { useAuthStore, useBookingStore, useSettingsStore } from '../../store'
-import { Card, CardContent, Select, Loading } from '../../components/ui'
+import { Card, CardContent, Select, CardSkeleton } from '../../components/ui'
 import { BookingCard } from '../../components/employee'
 import { ConfirmDialog } from '../../components/ui/Modal'
 import toast from 'react-hot-toast'
@@ -78,8 +78,25 @@ export function BookingsPage() {
     })
     .reduce((sum, b) => sum + ((b.menu_schedule?.meal as any)?.price || 0), 0)
 
-  if (isLoading) {
-    return <Loading fullScreen text="Loading bookings..." />
+  const isInitialLoading = isLoading && bookings.length === 0
+
+  if (isInitialLoading) {
+    return (
+      <div className="space-y-6">
+        {/* Header Skeleton */}
+        <div>
+          <div className="h-8 w-48 bg-gray-200 rounded animate-pulse mb-2" />
+          <div className="h-4 w-64 bg-gray-200 rounded animate-pulse" />
+        </div>
+
+        {/* Cards Skeleton */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <CardSkeleton />
+          <CardSkeleton />
+          <CardSkeleton />
+        </div>
+      </div>
+    )
   }
 
   return (

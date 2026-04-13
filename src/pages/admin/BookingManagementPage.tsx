@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Download, Search, CheckCircle, XCircle } from 'lucide-react'
-import { Card, CardContent, CardHeader, CardTitle, Button, Input, Select, Loading, StatusBadge } from '../../components/ui'
+import { Card, CardContent, CardHeader, CardTitle, Button, Input, Select, StatusBadge, TableSkeleton } from '../../components/ui'
 import { useBookingStore } from '../../store'
 import { format } from 'date-fns'
 import toast from 'react-hot-toast'
@@ -91,8 +91,30 @@ export function BookingManagementPage() {
 
   const pendingCount = filteredBookings.filter((b) => b.status === 'pending').length
 
-  if (isLoading) {
-    return <Loading fullScreen text="Loading bookings..." />
+  const isInitialLoading = isLoading && bookings.length === 0
+
+  if (isInitialLoading) {
+    return (
+      <div className="space-y-6">
+        {/* Header Skeleton */}
+        <div>
+          <div className="h-8 w-48 bg-gray-200 rounded animate-pulse mb-2" />
+          <div className="h-4 w-64 bg-gray-200 rounded animate-pulse" />
+        </div>
+
+        {/* Controls Skeleton */}
+        <div className="flex gap-4">
+          <div className="h-10 w-40 bg-gray-200 rounded animate-pulse" />
+          <div className="h-10 w-48 bg-gray-200 rounded animate-pulse" />
+          <div className="h-10 w-64 bg-gray-200 rounded animate-pulse" />
+        </div>
+
+        {/* Table Skeleton */}
+        <Card>
+          <TableSkeleton rows={8} />
+        </Card>
+      </div>
+    )
   }
 
   return (

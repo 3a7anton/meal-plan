@@ -8,7 +8,7 @@ import {
   Users,
   UtensilsCrossed 
 } from 'lucide-react'
-import { Card, CardContent, CardHeader, CardTitle, Button, Loading, StatusBadge } from '../../components/ui'
+import { Card, CardContent, CardHeader, CardTitle, Button, StatusBadge, CardSkeleton } from '../../components/ui'
 import { useBookingStore } from '../../store'
 import { supabase } from '../../lib/supabaseClient'
 import { format } from 'date-fns'
@@ -87,7 +87,32 @@ export function AdminDashboardPage() {
   const pendingBookings = bookings.filter((b) => b.status === 'pending')
 
   if (loadingStats) {
-    return <Loading fullScreen text="Loading dashboard..." />
+    return (
+      <div className="space-y-6">
+        {/* Header Skeleton */}
+        <div>
+          <div className="h-8 w-48 bg-gray-200 rounded animate-pulse mb-2" />
+          <div className="h-4 w-64 bg-gray-200 rounded animate-pulse" />
+        </div>
+
+        {/* Stats Cards Skeleton */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <CardSkeleton />
+          <CardSkeleton />
+          <CardSkeleton />
+          <CardSkeleton />
+        </div>
+
+        {/* Additional Stats Skeleton */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <CardSkeleton />
+          <CardSkeleton />
+        </div>
+
+        {/* Pending Approvals Skeleton */}
+        <CardSkeleton />
+      </div>
+    )
   }
 
   return (
@@ -185,8 +210,12 @@ export function AdminDashboardPage() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {isLoading ? (
-            <Loading text="Loading bookings..." />
+          {isLoading && bookings.length === 0 ? (
+            <div className="space-y-3">
+              <div className="h-12 bg-gray-200 rounded animate-pulse" />
+              <div className="h-12 bg-gray-200 rounded animate-pulse" />
+              <div className="h-12 bg-gray-200 rounded animate-pulse" />
+            </div>
           ) : pendingBookings.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
               <CheckCircle className="h-12 w-12 mx-auto mb-3 text-green-300" />

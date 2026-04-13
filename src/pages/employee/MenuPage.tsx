@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { format, addDays, subDays } from 'date-fns'
 import { ChevronLeft, ChevronRight, UtensilsCrossed } from 'lucide-react'
 import { useAuthStore, useMenuStore, useBookingStore } from '../../store'
-import { Card, Button, Loading, Select } from '../../components/ui'
+import { Card, Button, Select, CardSkeleton } from '../../components/ui'
 import { MealCard } from '../../components/employee'
 import { ConfirmDialog } from '../../components/ui/Modal'
 import toast from 'react-hot-toast'
@@ -117,8 +117,29 @@ export function MenuPage() {
       </Card>
 
       {/* Menu Content */}
-      {isLoading ? (
-        <Loading text="Loading menu..." className="py-12" />
+      {isLoading && schedules.length === 0 ? (
+        <div className="space-y-8">
+          {/* Breakfast Section Skeleton */}
+          <section>
+            <div className="h-6 w-32 bg-gray-200 rounded animate-pulse mb-4" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              <CardSkeleton />
+              <CardSkeleton />
+              <CardSkeleton />
+              <CardSkeleton />
+            </div>
+          </section>
+          {/* Lunch Section Skeleton */}
+          <section>
+            <div className="h-6 w-32 bg-gray-200 rounded animate-pulse mb-4" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              <CardSkeleton />
+              <CardSkeleton />
+              <CardSkeleton />
+              <CardSkeleton />
+            </div>
+          </section>
+        </div>
       ) : filteredSchedules.length === 0 ? (
         <Card>
           <div className="text-center py-12">

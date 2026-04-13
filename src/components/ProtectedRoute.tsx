@@ -9,11 +9,15 @@ interface ProtectedRouteProps {
 
 export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) {
   const location = useLocation()
-  const { user, profile, isLoading, isInitialized } = useAuthStore()
+  const { user, profile, isInitialized } = useAuthStore()
 
-  // Show loading while checking auth state
-  if (!isInitialized || isLoading) {
-    return <Loading fullScreen text="Loading..." />
+  // Show minimal loading only during initial auth check
+  if (!isInitialized) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <Loading size="sm" />
+      </div>
+    )
   }
 
   // Not authenticated - redirect to login
