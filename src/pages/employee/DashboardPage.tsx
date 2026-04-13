@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { UtensilsCrossed, CalendarDays, Clock, ArrowRight, DollarSign, AlertCircle } from 'lucide-react'
 import { useAuthStore, useBookingStore, useMenuStore } from '../../store'
 import { Card, CardContent, CardHeader, CardTitle, Button, CardSkeleton } from '../../components/ui'
+import { useTranslation } from '../../hooks/useTranslation'
 import { BookingCard, MealCard } from '../../components/employee'
 import { format } from 'date-fns'
 import { supabase } from '../../lib/supabaseClient'
@@ -11,6 +12,7 @@ export function DashboardPage() {
   const { user, profile } = useAuthStore()
   const { bookings, fetchUserBookings, isLoading: bookingsLoading } = useBookingStore()
   const { schedules, fetchSchedules, isLoading: menuLoading } = useMenuStore()
+  const { t } = useTranslation()
   const [dueAmount, setDueAmount] = useState<number | null>(null)
   const [isLoadingDue, setIsLoadingDue] = useState(true)
 
@@ -127,7 +129,7 @@ export function DashboardPage() {
       <div className="bg-gradient-to-r from-primary-600 to-primary-700 rounded-2xl p-6 text-white relative overflow-hidden">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold">Welcome back, {profile?.full_name?.split(' ')[0]}!</h1>
+            <h1 className="text-2xl font-bold">{t('welcome')}, {profile?.full_name?.split(' ')[0]}!</h1>
             <p className="mt-1 text-primary-100">
               {format(new Date(), 'EEEE, MMMM d, yyyy')}
             </p>
@@ -157,15 +159,15 @@ export function DashboardPage() {
             </div>
             <div className="flex-1">
               <p className="text-lg font-bold text-red-800">
-                ৳{dueAmount.toFixed(0)} Due This Month
+                ৳{dueAmount.toFixed(0)} {t('dueAmount')}
               </p>
               <p className="text-sm text-red-600">
-                You have unpaid meal charges. Please settle your bill.
+                {t('dueAmountMsg')}
               </p>
             </div>
             <Link to="/bookings">
               <Button variant="primary" size="sm" className="bg-red-600 hover:bg-red-700">
-                View Details
+                {t('viewDetails')}
               </Button>
             </Link>
           </CardContent>
@@ -183,7 +185,7 @@ export function DashboardPage() {
               <p className="text-2xl font-bold text-gray-900">
                 {bookings.filter((b) => b.status === 'confirmed').length || '—'}
               </p>
-              <p className="text-sm text-gray-500">Confirmed Bookings</p>
+              <p className="text-sm text-gray-500">{t('confirmedBookings')}</p>
             </div>
           </CardContent>
         </Card>
@@ -197,7 +199,7 @@ export function DashboardPage() {
               <p className="text-2xl font-bold text-gray-900">
                 {bookings.filter((b) => b.status === 'pending').length || '—'}
               </p>
-              <p className="text-sm text-gray-500">Pending Bookings</p>
+              <p className="text-sm text-gray-500">{t('pendingBookings')}</p>
             </div>
           </CardContent>
         </Card>
@@ -209,7 +211,7 @@ export function DashboardPage() {
             </div>
             <div>
               <p className="text-2xl font-bold text-gray-900">{todaysSchedules.length || '—'}</p>
-              <p className="text-sm text-gray-500">Available Today</p>
+              <p className="text-sm text-gray-500">{t('availableToday')}</p>
             </div>
           </CardContent>
         </Card>
@@ -223,7 +225,7 @@ export function DashboardPage() {
               <p className={`text-2xl font-bold ${hasDue ? 'text-red-700' : 'text-gray-900'}`}>
                 {isLoadingDue ? '...' : hasDue ? `৳${dueAmount!.toFixed(0)}` : '—'}
               </p>
-              <p className="text-sm text-gray-500">Due This Month</p>
+              <p className="text-sm text-gray-500">{t('dueAmount')}</p>
             </div>
           </CardContent>
         </Card>
@@ -234,10 +236,10 @@ export function DashboardPage() {
         {/* Upcoming Bookings */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle>Upcoming Bookings</CardTitle>
+            <CardTitle>{t('upcomingBookings')}</CardTitle>
             <Link to="/bookings">
               <Button variant="ghost" size="sm">
-                View All <ArrowRight className="h-4 w-4 ml-1" />
+                {t('viewAll')} <ArrowRight className="h-4 w-4 ml-1" />
               </Button>
             </Link>
           </CardHeader>
@@ -245,10 +247,10 @@ export function DashboardPage() {
             {upcomingBookings.length === 0 ? (
               <div className="text-center py-8">
                 <CalendarDays className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-                <p className="text-gray-500">No upcoming bookings</p>
+                <p className="text-gray-500">{t('noUpcomingBookings')}</p>
                 <Link to="/menu">
                   <Button variant="primary" size="sm" className="mt-4">
-                    Browse Menu
+                    {t('browseMenu')}
                   </Button>
                 </Link>
               </div>
@@ -265,10 +267,10 @@ export function DashboardPage() {
         {/* Today's Menu */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle>Today's Menu</CardTitle>
+            <CardTitle>{t('todayMenu')}</CardTitle>
             <Link to="/menu">
               <Button variant="ghost" size="sm">
-                View All <ArrowRight className="h-4 w-4 ml-1" />
+                {t('viewAll')} <ArrowRight className="h-4 w-4 ml-1" />
               </Button>
             </Link>
           </CardHeader>
@@ -276,7 +278,7 @@ export function DashboardPage() {
             {todaysSchedules.length === 0 ? (
               <div className="text-center py-8">
                 <UtensilsCrossed className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-                <p className="text-gray-500">No meals available today</p>
+                <p className="text-gray-500">{t('noMealsToday')}</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

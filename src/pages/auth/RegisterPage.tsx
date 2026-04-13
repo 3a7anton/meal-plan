@@ -5,37 +5,28 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { UtensilsCrossed } from 'lucide-react'
 import { useAuthStore } from '../../store'
-import { Card, CardContent, Button, Input, Select } from '../../components/ui'
+import { Card, CardContent, Button, Input, Select, LanguageSelector } from '../../components/ui'
+import { useTranslation } from '../../hooks/useTranslation'
 import toast from 'react-hot-toast'
 
 const registerSchema = z.object({
-  fullName: z.string().min(2, 'Name must be at least 2 characters'),
-  email: z.string().email('Please enter a valid email'),
-  phone: z.string().min(10, 'Phone number is required'),
-  password: z.string().min(6, 'Password must be at least 6 characters'),
+  fullName: z.string().min(2, 'nameTooShort'),
+  email: z.string().email('invalidEmail'),
+  phone: z.string().min(10, 'phoneRequired'),
+  password: z.string().min(6, 'passwordTooShort'),
   confirmPassword: z.string(),
   department: z.string().optional(),
 }).refine((data) => data.password === data.confirmPassword, {
-  message: "Passwords don't match",
+  message: 'passwordsDontMatch',
   path: ['confirmPassword'],
 })
 
 type RegisterForm = z.infer<typeof registerSchema>
 
-const departments = [
-  { value: '', label: 'Select Department' },
-  { value: 'Engineering', label: 'Engineering' },
-  { value: 'Design', label: 'Design' },
-  { value: 'Marketing', label: 'Marketing' },
-  { value: 'Sales', label: 'Sales' },
-  { value: 'HR', label: 'Human Resources' },
-  { value: 'Finance', label: 'Finance' },
-  { value: 'Operations', label: 'Operations' },
-]
-
 export function RegisterPage() {
   const navigate = useNavigate()
   const { signUp, isLoading } = useAuthStore()
+  const { t } = useTranslation()
   const [error, setError] = useState<string | null>(null)
 
   const {
@@ -58,9 +49,9 @@ export function RegisterPage() {
 
     if (result.error) {
       setError(result.error.message)
-      toast.error('Failed to create account')
+      toast.error(t('createAccountFailed'))
     } else {
-      toast.success('Account created! Please check your email to verify.')
+      toast.success(t('accountCreated'))
       navigate('/login')
     }
   }
@@ -68,6 +59,11 @@ export function RegisterPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full">
+        {/* Language Selector - Top Right */}
+        <div className="absolute top-4 right-4">
+          <LanguageSelector variant="compact" />
+        </div>
+
         {/* Logo */}
         <div className="text-center mb-8">
           <div className="flex justify-center">
@@ -75,8 +71,8 @@ export function RegisterPage() {
               <UtensilsCrossed className="h-8 w-8 text-white" />
             </div>
           </div>
-          <h2 className="mt-4 text-3xl font-bold text-gray-900">Create Account</h2>
-          <p className="mt-2 text-gray-600">Join the Office Meal Planner</p>
+          <h2 className="mt-4 text-3xl font-bold text-gray-900">{t('registerTitle')}</h2>
+          <p className="mt-2 text-gray-600">{t('appName')}</p>
         </div>
 
         <Card>
@@ -89,14 +85,14 @@ export function RegisterPage() {
               )}
 
               <Input
-                label="Full Name"
+                label={t('fullName')}
                 placeholder="John Doe"
                 error={errors.fullName?.message}
                 {...register('fullName')}
               />
 
               <Input
-                label="Email"
+                label={t('email')}
                 type="email"
                 placeholder="you@company.com"
                 error={errors.email?.message}
@@ -104,7 +100,7 @@ export function RegisterPage() {
               />
 
               <Input
-                label="Mobile Phone"
+                label={t('phone')}
                 type="tel"
                 placeholder="+880 1XX XXX XXXX"
                 error={errors.phone?.message}
@@ -112,13 +108,22 @@ export function RegisterPage() {
               />
 
               <Select
-                label="Department"
-                options={departments}
+                label={t('department')}
+                options={[
+                  { value: '', label: t('selectDepartment') },
+                  { value: 'Engineering', label: t('engineering') },
+                  { value: 'Design', label: t('design') },
+                  { value: 'Marketing', label: t('marketing') },
+                  { value: 'Sales', label: t('sales') },
+                  { value: 'HR', label: t('hr') },
+                  { value: 'Finance', label: t('finance') },
+                  { value: 'Operations', label: t('operations') },
+                ]}
                 {...register('department')}
               />
 
               <Input
-                label="Password"
+                label={t('password')}
                 type="password"
                 placeholder="••••••••"
                 error={errors.password?.message}
@@ -126,7 +131,7 @@ export function RegisterPage() {
               />
 
               <Input
-                label="Confirm Password"
+                label={t('confirmPassword')}
                 type="password"
                 placeholder="••••••••"
                 error={errors.confirmPassword?.message}
@@ -138,16 +143,16 @@ export function RegisterPage() {
                 className="w-full"
                 isLoading={isLoading}
               >
-                Create Account
+                {t('signUp')}
               </Button>
             </form>
           </CardContent>
         </Card>
 
         <p className="mt-4 text-center text-sm text-gray-600">
-          Already have an account?{' '}
+          {t('alreadyHaveAccount')}{' '}
           <Link to="/login" className="font-medium text-primary-600 hover:text-primary-500">
-            Sign in here
+            {t('loginHere')}
           </Link>
         </p>
       </div>

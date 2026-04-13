@@ -3,6 +3,7 @@ import { format, addDays, subDays } from 'date-fns'
 import { ChevronLeft, ChevronRight, UtensilsCrossed } from 'lucide-react'
 import { useAuthStore, useMenuStore, useBookingStore } from '../../store'
 import { Card, Button, Select, CardSkeleton } from '../../components/ui'
+import { useTranslation } from '../../hooks/useTranslation'
 import { MealCard } from '../../components/employee'
 import { ConfirmDialog } from '../../components/ui/Modal'
 import toast from 'react-hot-toast'
@@ -11,6 +12,7 @@ export function MenuPage() {
   const { user } = useAuthStore()
   const { schedules, fetchSchedules, isLoading } = useMenuStore()
   const { createBooking, bookings, fetchUserBookings } = useBookingStore()
+  const { t } = useTranslation()
   
   const [selectedDate, setSelectedDate] = useState(new Date())
   const [mealTypeFilter, setMealTypeFilter] = useState<string>('all')
@@ -70,7 +72,7 @@ export function MenuPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Menu</h1>
+          <h1 className="text-2xl font-bold text-gray-900">{t('menu')}</h1>
           <p className="text-gray-500">Browse and book your meals</p>
         </div>
 
@@ -78,9 +80,9 @@ export function MenuPage() {
         <div className="flex items-center gap-3">
           <Select
             options={[
-              { value: 'all', label: 'All Meals' },
-              { value: 'breakfast', label: 'Breakfast' },
-              { value: 'lunch', label: 'Lunch' },
+              { value: 'all', label: t('all') },
+              { value: 'breakfast', label: t('breakfast') },
+              { value: 'lunch', label: t('lunch') },
             ]}
             value={mealTypeFilter}
             onChange={(e) => setMealTypeFilter(e.target.value)}
@@ -105,7 +107,7 @@ export function MenuPage() {
                 onClick={handleToday}
                 className="text-sm text-primary-600 hover:text-primary-700"
               >
-                Go to Today
+                {t('todayMenu')}
               </button>
             )}
           </div>
@@ -152,9 +154,9 @@ export function MenuPage() {
         <Card>
           <div className="text-center py-12">
             <UtensilsCrossed className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900">No meals available</h3>
+            <h3 className="text-lg font-medium text-gray-900">{t('noMealsAvailable')}</h3>
             <p className="text-gray-500 mt-1">
-              There are no meals scheduled for this day.
+              {t('noMealsScheduled')}
             </p>
           </div>
         </Card>

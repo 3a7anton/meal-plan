@@ -13,6 +13,8 @@ import {
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { useAuthStore, useUIStore } from '../../store'
+import { LanguageSelector } from '../ui/LanguageSelector'
+import { useTranslation } from '../../hooks/useTranslation'
 import { cn } from '../../lib/utils'
 
 interface SidebarProps {
@@ -23,6 +25,7 @@ export function Sidebar({ isAdmin = false }: SidebarProps) {
   const [isCollapsed, setIsCollapsed] = useState(false)
   const { signOut } = useAuthStore()
   const { isMobileMenuOpen, closeMobileMenu } = useUIStore()
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const location = useLocation()
 
@@ -39,19 +42,19 @@ export function Sidebar({ isAdmin = false }: SidebarProps) {
   }
 
   const employeeLinks = [
-    { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-    { to: '/menu', icon: UtensilsCrossed, label: 'Menu' },
-    { to: '/bookings', icon: CalendarDays, label: 'My Bookings' },
-    { to: '/profile', icon: UserCircle, label: 'My Profile' },
+    { to: '/dashboard', icon: LayoutDashboard, label: t('dashboard') },
+    { to: '/menu', icon: UtensilsCrossed, label: t('menu') },
+    { to: '/bookings', icon: CalendarDays, label: t('bookings') },
+    { to: '/profile', icon: UserCircle, label: t('profile') },
   ]
 
   const adminLinks = [
-    { to: '/admin', icon: LayoutDashboard, label: 'Dashboard' },
-    { to: '/admin/menu', icon: UtensilsCrossed, label: 'Menu Management' },
-    { to: '/admin/bookings', icon: CalendarDays, label: 'Bookings' },
-    { to: '/admin/users', icon: Users, label: 'Users' },
-    { to: '/admin/payments', icon: CreditCard, label: 'Payments' },
-    { to: '/admin/reports', icon: FileBarChart, label: 'Reports' },
+    { to: '/admin', icon: LayoutDashboard, label: t('dashboard') },
+    { to: '/admin/menu', icon: UtensilsCrossed, label: t('menu') },
+    { to: '/admin/bookings', icon: CalendarDays, label: t('bookings') },
+    { to: '/admin/users', icon: Users, label: t('users') },
+    { to: '/admin/payments', icon: CreditCard, label: t('payments') },
+    { to: '/admin/reports', icon: FileBarChart, label: t('reports') },
   ]
 
   const links = isAdmin ? adminLinks : employeeLinks
@@ -112,8 +115,13 @@ export function Sidebar({ isAdmin = false }: SidebarProps) {
           ))}
         </nav>
 
-        {/* Sign Out */}
-        <div className="absolute bottom-0 left-0 right-0 p-3 border-t border-gray-200">
+        {/* Language & Sign Out */}
+        <div className="absolute bottom-0 left-0 right-0 p-3 border-t border-gray-200 space-y-2">
+          {/* Language Selector */}
+          <div className={cn('flex', isCollapsed ? 'justify-center' : 'justify-start')}>
+            <LanguageSelector variant="compact" />
+          </div>
+          {/* Sign Out Button */}
           <button
             onClick={handleSignOut}
             className={cn(
@@ -122,7 +130,7 @@ export function Sidebar({ isAdmin = false }: SidebarProps) {
             )}
           >
             <LogOut className="h-5 w-5 flex-shrink-0" />
-            {!isCollapsed && <span className="font-medium">Sign Out</span>}
+            {!isCollapsed && <span className="font-medium">{t('signOut')}</span>}
           </button>
         </div>
       </aside>

@@ -3,6 +3,7 @@ import { CalendarDays, RotateCcw } from 'lucide-react'
 import { useAuthStore, useBookingStore, useSettingsStore } from '../../store'
 import { Card, CardContent, Select, CardSkeleton } from '../../components/ui'
 import { BookingCard } from '../../components/employee'
+import { useTranslation } from '../../hooks/useTranslation'
 import { ConfirmDialog } from '../../components/ui/Modal'
 import toast from 'react-hot-toast'
 
@@ -10,6 +11,7 @@ export function BookingsPage() {
   const { user } = useAuthStore()
   const { bookings, fetchUserBookings, cancelBooking, isLoading } = useBookingStore()
   const { cancellationTimeLimit, fetchSettings } = useSettingsStore()
+  const { t } = useTranslation()
   
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [cancellingBookingId, setCancellingBookingId] = useState<string | null>(null)
@@ -33,7 +35,7 @@ export function BookingsPage() {
     if (result.error) {
       toast.error(result.error.message)
     } else {
-      toast.success('Meal returned successfully')
+      toast.success(t('mealReturned'))
     }
     
     setIsCancelling(false)
@@ -49,7 +51,7 @@ export function BookingsPage() {
     if (result.error) {
       toast.error(result.error.message)
     } else {
-      toast.success('Refund requested successfully. Your bill will be adjusted.')
+      toast.success(t('refundRequested'))
     }
     
     setIsRefunding(false)
@@ -104,18 +106,18 @@ export function BookingsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">My Bookings</h1>
+          <h1 className="text-2xl font-bold text-gray-900">{t('bookings')}</h1>
           <p className="text-gray-500">Manage your meal reservations</p>
         </div>
 
         {/* Filters */}
         <Select
           options={[
-            { value: 'all', label: 'All Bookings' },
-            { value: 'pending', label: 'Pending' },
-            { value: 'confirmed', label: 'Confirmed' },
-            { value: 'denied', label: 'Denied' },
-            { value: 'cancelled', label: 'Cancelled' },
+            { value: 'all', label: t('all') },
+            { value: 'pending', label: t('pending') },
+            { value: 'confirmed', label: t('confirmed') },
+            { value: 'denied', label: t('denied') },
+            { value: 'cancelled', label: t('cancelled') },
           ]}
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
@@ -127,8 +129,8 @@ export function BookingsPage() {
       {monthlyTotal > 0 && (
         <div className="bg-primary-50 border border-primary-200 rounded-xl px-5 py-4 flex items-center justify-between">
           <div>
-            <p className="text-sm font-medium text-primary-700">This Month's Meal Cost</p>
-            <p className="text-xs text-primary-500">Confirmed bookings only</p>
+            <p className="text-sm font-medium text-primary-700">{t('monthlyTotal')}</p>
+            <p className="text-xs text-primary-500">{t('confirmedBookings')}</p>
           </div>
           <p className="text-2xl font-bold text-primary-700">৳{monthlyTotal.toFixed(0)}</p>
         </div>
@@ -138,7 +140,7 @@ export function BookingsPage() {
       {upcomingBookings.length > 0 && (
         <section>
           <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-            Active Bookings ({upcomingBookings.length})
+            {t('upcomingBookings')} ({upcomingBookings.length})
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {upcomingBookings.map((booking) => (
@@ -158,7 +160,7 @@ export function BookingsPage() {
       {pastBookings.length > 0 && (
         <section>
           <h2 className="text-lg font-semibold text-gray-900 mb-4">
-            Past Bookings ({pastBookings.length})
+            {t('pastBookings')} ({pastBookings.length})
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {pastBookings.map((booking) => (
@@ -173,11 +175,11 @@ export function BookingsPage() {
         <Card>
           <CardContent className="text-center py-12">
             <CalendarDays className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900">No bookings found</h3>
+            <h3 className="text-lg font-medium text-gray-900">{t('noBookings')}</h3>
             <p className="text-gray-500 mt-1">
               {statusFilter === 'all'
-                ? "You haven't made any meal bookings yet."
-                : `No ${statusFilter} bookings found.`}
+                ? t('noBookingsMsg')
+                : `${t('noBookings')} - ${statusFilter}`}
             </p>
           </CardContent>
         </Card>
@@ -188,19 +190,19 @@ export function BookingsPage() {
         isOpen={!!refundingBookingId}
         onClose={() => setRefundingBookingId(null)}
         onConfirm={handleRefundBooking}
-        title="Request Refund"
+        title={t('requestRefund')}
         message={
           <div className="space-y-2">
             <div className="flex items-center gap-2 text-amber-600">
               <RotateCcw className="h-5 w-5" />
-              <span className="font-medium">Request refund for this meal?</span>
+              <span className="font-medium">{t('requestRefund')}</span>
             </div>
             <p className="text-gray-600 text-sm">
-              The booking will be cancelled and you will receive a refund. This action cannot be undone.
+              {t('refundConfirmMsg')}
             </p>
           </div>
         }
-        confirmText="Request Refund"
+        confirmText={t('requestRefund')}
         variant="danger"
         isLoading={isRefunding}
       />
@@ -210,19 +212,19 @@ export function BookingsPage() {
         isOpen={!!cancellingBookingId}
         onClose={() => setCancellingBookingId(null)}
         onConfirm={handleCancelBooking}
-        title="Return Meal"
+        title={t('returnMeal')}
         message={
           <div className="space-y-2">
             <div className="flex items-center gap-2 text-amber-600">
               <RotateCcw className="h-5 w-5" />
-              <span className="font-medium">Return this unused meal?</span>
+              <span className="font-medium">{t('returnMeal')}</span>
             </div>
             <p className="text-gray-600 text-sm">
-              The booking will be cancelled and your monthly bill will be reduced accordingly.
+              {t('returnMealMsg')}
             </p>
           </div>
         }
-        confirmText="Return Meal"
+        confirmText={t('returnMeal')}
         variant="danger"
         isLoading={isCancelling}
       />

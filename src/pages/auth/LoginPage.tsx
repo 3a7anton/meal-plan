@@ -5,12 +5,13 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { UtensilsCrossed, Clock } from 'lucide-react'
 import { useAuthStore } from '../../store'
-import { Card, CardContent, Button, Input } from '../../components/ui'
+import { Card, CardContent, Button, Input, LanguageSelector } from '../../components/ui'
+import { useTranslation } from '../../hooks/useTranslation'
 import toast from 'react-hot-toast'
 
 const loginSchema = z.object({
-  email: z.string().email('Please enter a valid email'),
-  password: z.string().min(6, 'Password must be at least 6 characters'),
+  email: z.string().email('invalidEmail'),
+  password: z.string().min(6, 'passwordTooShort'),
   rememberMe: z.boolean().optional(),
 })
 
@@ -19,6 +20,7 @@ type LoginForm = z.infer<typeof loginSchema>
 export function LoginPage() {
   const navigate = useNavigate()
   const { signIn, isLoading } = useAuthStore()
+  const { t } = useTranslation()
   const [error, setError] = useState<string | null>(null)
   const [isPendingApproval, setIsPendingApproval] = useState(false)
 
@@ -40,10 +42,10 @@ export function LoginPage() {
         setIsPendingApproval(true)
       } else {
         setError(result.error.message)
-        toast.error('Failed to sign in')
+        toast.error(t('signInFailed'))
       }
     } else {
-      toast.success('Welcome back!')
+      toast.success(t('welcomeBack'))
       setTimeout(() => {
         const currentProfile = useAuthStore.getState().profile
         if (currentProfile?.role === 'admin') {
@@ -58,6 +60,11 @@ export function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full">
+        {/* Language Selector - Top Right */}
+        <div className="absolute top-4 right-4">
+          <LanguageSelector variant="compact" />
+        </div>
+
         {/* Logo */}
         <div className="text-center mb-8">
           <div className="flex justify-center">
@@ -65,8 +72,8 @@ export function LoginPage() {
               <UtensilsCrossed className="h-8 w-8 text-white" />
             </div>
           </div>
-          <h2 className="mt-4 text-3xl font-bold text-gray-900">Office Meal Planner</h2>
-          <p className="mt-2 text-gray-600">Sign in to your account</p>
+          <h2 className="mt-4 text-3xl font-bold text-gray-900">{t('appName')}</h2>
+          <p className="mt-2 text-gray-600">{t('loginTitle')}</p>
         </div>
 
         {/* Pending Approval Banner */}
@@ -74,11 +81,8 @@ export function LoginPage() {
           <div className="mb-4 p-4 bg-amber-50 border border-amber-200 rounded-xl flex items-start gap-3">
             <Clock className="h-5 w-5 text-amber-500 mt-0.5 flex-shrink-0" />
             <div>
-              <p className="font-medium text-amber-800">Account Pending Approval</p>
-              <p className="text-sm text-amber-700 mt-1">
-                Your account has been registered but is awaiting admin approval. 
-                Please contact your administrator or check back later.
-              </p>
+              <p className="font-medium text-amber-800">{t('pendingApproval')}</p>
+              <p className="text-sm text-amber-700 mt-1">{t('pendingApprovalMsg')}</p>
             </div>
           </div>
         )}
@@ -93,7 +97,7 @@ export function LoginPage() {
               )}
 
               <Input
-                label="Email"
+                label={t('email')}
                 type="email"
                 placeholder="you@company.com"
                 error={errors.email?.message}
@@ -101,7 +105,7 @@ export function LoginPage() {
               />
 
               <Input
-                label="Password"
+                label={t('password')}
                 type="password"
                 placeholder="••••••••"
                 error={errors.password?.message}
@@ -117,7 +121,7 @@ export function LoginPage() {
                   className="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
                 />
                 <label htmlFor="rememberMe" className="text-sm text-gray-600">
-                  Remember me
+                  {t('rememberMe')}
                 </label>
               </div>
 
@@ -126,16 +130,16 @@ export function LoginPage() {
                 className="w-full"
                 isLoading={isLoading}
               >
-                Sign In
+                {t('signIn')}
               </Button>
             </form>
           </CardContent>
         </Card>
 
         <p className="mt-4 text-center text-sm text-gray-600">
-          Don't have an account?{' '}
+          {t('dontHaveAccount')}{' '}
           <Link to="/register" className="font-medium text-primary-600 hover:text-primary-500">
-            Register here
+            {t('registerHere')}
           </Link>
         </p>
       </div>

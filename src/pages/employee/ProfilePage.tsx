@@ -5,6 +5,7 @@ import { z } from 'zod'
 import { User, Mail, Phone, Building2, Lock, Save } from 'lucide-react'
 import { useAuthStore } from '../../store'
 import { Card, CardContent, CardHeader, CardTitle, Button, Input, ImageUpload } from '../../components/ui'
+import { useTranslation } from '../../hooks/useTranslation'
 import { supabase } from '../../lib/supabaseClient'
 import toast from 'react-hot-toast'
 
@@ -33,6 +34,7 @@ type PasswordForm = z.infer<typeof passwordSchema>
 
 export function ProfilePage() {
   const { profile, user, updateProfile } = useAuthStore()
+  const { t } = useTranslation()
   const [isSavingProfile, setIsSavingProfile] = useState(false)
   const [isSavingEmail, setIsSavingEmail] = useState(false)
   const [isSavingPassword, setIsSavingPassword] = useState(false)
@@ -72,37 +74,34 @@ export function ProfilePage() {
       console.error('Profile update error:', result.error)
       toast.error(`Failed to update profile: ${result.error.message}`)
     } else {
-      toast.success('Profile updated!')
+      toast.success(t('profileUpdated'))
     }
     setIsSavingProfile(false)
   }
 
   const onSaveEmail = async (data: EmailForm) => {
     setIsSavingEmail(true)
-    try {
-      const { error } = await supabase.auth.updateUser({ email: data.newEmail })
-      if (error) throw error
-      toast.success('Email update initiated! Check your new email for confirmation.')
-      emailForm.reset()
-    } catch (err) {
-      toast.error((err as Error).message || 'Failed to update email')
-    } finally {
-      setIsSavingEmail(false)
+    const { error } = await supabase.auth.updateUser({ email: data.newEmail })
+    
+    if (error) {
+      toast.error(`${t('updateFailed')}: ${error.message}`)
+    } else {
+      toast.success(t('emailUpdated'))
     }
+    setIsSavingEmail(false)
   }
 
   const onSavePassword = async (data: PasswordForm) => {
     setIsSavingPassword(true)
-    try {
-      const { error } = await supabase.auth.updateUser({ password: data.newPassword })
-      if (error) throw error
-      toast.success('Password updated!')
+    const { error } = await supabase.auth.updateUser({ password: data.newPassword })
+    
+    if (error) {
+      toast.error(`${t('updateFailed')}: ${error.message}`)
+    } else {
+      toast.success(t('passwordUpdated'))
       passwordForm.reset()
-    } catch (err) {
-      toast.error((err as Error).message || 'Failed to update password')
-    } finally {
-      setIsSavingPassword(false)
     }
+    setIsSavingPassword(false)
   }
 
   const avatarUrl = profileForm.watch('avatar_url') || profile?.avatar_url
@@ -111,7 +110,7 @@ export function ProfilePage() {
     <div className="space-y-6 max-w-2xl mx-auto lg:mx-0">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">My Profile</h1>
+        <h1 className="text-2xl font-bold text-gray-900">{t('profile')}</h1>
         <p className="text-gray-500">Manage your personal information and account settings</p>
       </div>
 
@@ -130,7 +129,7 @@ export function ProfilePage() {
               <span className={`inline-block mt-1 px-2 py-0.5 rounded-full text-xs font-medium ${
                 profile?.role === 'admin' ? 'bg-purple-100 text-purple-700' : 'bg-primary-100 text-primary-700'
               }`}>
-                {profile?.role === 'admin' ? 'Admin' : 'Employee'}
+                {profile?.role === 'admin' ? t('admin') : t('employee')}
               </span>
             </div>
           </div>
@@ -141,7 +140,7 @@ export function ProfilePage() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <User className="h-5 w-5" /> Personal Information
+            <User className="h-5 w-5" /> {t('personalInfo')}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -149,7 +148,7 @@ export function ProfilePage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="relative">
                 <Input
-                  label="Full Name"
+                  label={t('fullName')}
                   placeholder="Jane Doe"
                   error={profileForm.formState.errors.full_name?.message}
                   {...profileForm.register('full_name')}
@@ -158,7 +157,7 @@ export function ProfilePage() {
               </div>
               <div className="relative">
                 <Input
-                  label="Phone Number"
+                  label={t('phone')}
                   placeholder="+880 1XX XXX XXXX"
                   error={profileForm.formState.errors.phone?.message}
                   {...profileForm.register('phone')}
@@ -169,7 +168,7 @@ export function ProfilePage() {
 
             <div className="relative">
               <Input
-                label="Department"
+                label={t('department')}
                 placeholder="Engineering, HR, Finance..."
                 error={profileForm.formState.errors.department?.message}
                 {...profileForm.register('department')}
@@ -182,7 +181,7 @@ export function ProfilePage() {
 
             {/* Current Email (read-only display) */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Current Email</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('currentEmail')}</label>
               <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-gray-500">
                 <Mail className="h-4 w-4 text-gray-400" />
                 <span className="text-sm">{user?.email}</span>
@@ -190,7 +189,7 @@ export function ProfilePage() {
             </div>
 
             <Button type="submit" isLoading={isSavingProfile} className="flex items-center gap-2">
-              <Save className="h-4 w-4" /> Save Changes
+              <Save className="h-4 w-4" /> {t('saveChanges')}
             </Button>
           </form>
         </CardContent>
@@ -200,13 +199,13 @@ export function ProfilePage() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Mail className="h-5 w-5" /> Change Email
+            <Mail className="h-5 w-5" /> {t('changeEmail')}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={emailForm.handleSubmit(onSaveEmail)} className="space-y-4">
             <Input
-              label="New Email Address"
+              label={t('newEmail')}
               type="email"
               placeholder="newemail@example.com"
               error={emailForm.formState.errors.newEmail?.message}
@@ -216,7 +215,7 @@ export function ProfilePage() {
               You'll receive a confirmation email at the new address to verify the change.
             </p>
             <Button type="submit" variant="secondary" isLoading={isSavingEmail} className="flex items-center gap-2">
-              <Mail className="h-4 w-4" /> Update Email
+              <Mail className="h-4 w-4" /> {t('updateEmail')}
             </Button>
           </form>
         </CardContent>
@@ -226,27 +225,27 @@ export function ProfilePage() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Lock className="h-5 w-5" /> Change Password
+            <Lock className="h-5 w-5" /> {t('changePassword')}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={passwordForm.handleSubmit(onSavePassword)} className="space-y-4">
             <Input
-              label="New Password"
+              label={t('newPassword')}
               type="password"
               placeholder="••••••••"
               error={passwordForm.formState.errors.newPassword?.message}
               {...passwordForm.register('newPassword')}
             />
             <Input
-              label="Confirm New Password"
+              label={t('confirmNewPassword')}
               type="password"
               placeholder="••••••••"
               error={passwordForm.formState.errors.confirmPassword?.message}
               {...passwordForm.register('confirmPassword')}
             />
             <Button type="submit" variant="secondary" isLoading={isSavingPassword} className="flex items-center gap-2">
-              <Lock className="h-4 w-4" /> Update Password
+              <Lock className="h-4 w-4" /> {t('updatePassword')}
             </Button>
           </form>
         </CardContent>
