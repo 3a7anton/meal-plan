@@ -12,7 +12,7 @@ interface BookingState {
   // Actions
   fetchUserBookings: (userId: string, forceRefresh?: boolean) => Promise<void>
   fetchAllBookings: (forceRefresh?: boolean) => Promise<BookingWithDetails[]>
-  createBooking: (menuScheduleId: string, userId: string, notes?: string) => Promise<{ error: Error | null }>
+  createBooking: (menuScheduleId: string, userId: string, notes?: string, quantity?: number) => Promise<{ error: Error | null }>
   cancelBooking: (bookingId: string) => Promise<{ error: Error | null }>
   updateBookingStatus: (bookingId: string, status: 'confirmed' | 'denied' | 'cancelled') => Promise<{ error: Error | null }>
   checkConflict: (userId: string, date: string, timeSlot: string) => Promise<boolean>
@@ -111,13 +111,14 @@ export const useBookingStore = create<BookingState>((set, get) => ({
     }
   },
 
-  createBooking: async (menuScheduleId: string, userId: string, notes?: string) => {
+  createBooking: async (menuScheduleId: string, userId: string, notes?: string, quantity: number = 1) => {
     try {
       // Use atomic database function to prevent race conditions
       const { error } = await supabase.rpc('create_booking_atomic', {
         p_user_id: userId,
         p_menu_schedule_id: menuScheduleId,
         p_notes: notes || null,
+        p_quantity: quantity,
       })
 
       if (error) {
@@ -258,18 +259,18 @@ export const useMenuStore = create<MenuState>((set, get) => ({
           .order('time_slot', { ascending: true }),
         supabase
           .from('bookings')
-          .select('menu_schedule_id')
+          .select('menu_schedule_id, quantity')
           .eq('status', 'confirmed')
           .or('status.eq.pending')
       ])
 
       if (schedulesError) throw schedulesError
 
-      // Count bookings per schedule in memory
+      // Count bookings per schedule in memory (sum of quantities)
       const bookingCounts: Record<string, number> = {}
       if (bookingsData) {
         for (const booking of bookingsData) {
-          bookingCounts[booking.menu_schedule_id] = (bookingCounts[booking.menu_schedule_id] || 0) + 1
+          bookingCounts[booking.menu_schedule_id] = (bookingCounts[booking.menu_schedule_id] || 0) + (booking.quantity || 1)
         }
       }
 

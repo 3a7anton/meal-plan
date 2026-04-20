@@ -76,8 +76,9 @@ export function DashboardPage() {
           const schedulePrice = booking.menu_schedule?.price
           const mealPrice = booking.menu_schedule?.meal?.price || 0
           const price = schedulePrice ?? mealPrice // Use schedule price if set, otherwise meal price
-          console.log('Booking price:', price, 'schedule:', schedulePrice, 'meal:', mealPrice)
-          return sum + price
+          const quantity = booking.quantity || 1
+          console.log('Booking price:', price, 'quantity:', quantity, 'schedule:', schedulePrice, 'meal:', mealPrice)
+          return sum + (price * quantity)
         }, 0)
 
         console.log('Total due calculated:', totalDue)

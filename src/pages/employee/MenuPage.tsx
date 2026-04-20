@@ -5,7 +5,7 @@ import { useAuthStore, useMenuStore, useBookingStore } from '../../store'
 import { Card, Button, Select, CardSkeleton } from '../../components/ui'
 import { useTranslation } from '../../hooks/useTranslation'
 import { MealCard } from '../../components/employee'
-import { ConfirmDialog } from '../../components/ui/Modal'
+import { ConfirmDialog, Modal } from '../../components/ui/Modal'
 import toast from 'react-hot-toast'
 
 export function MenuPage() {
@@ -17,6 +17,7 @@ export function MenuPage() {
   const [selectedDate, setSelectedDate] = useState(new Date())
   const [mealTypeFilter, setMealTypeFilter] = useState<string>('all')
   const [bookingScheduleId, setBookingScheduleId] = useState<string | null>(null)
+  const [bookingQuantity, setBookingQuantity] = useState<number>(1)
   const [isBooking, setIsBooking] = useState(false)
 
   const formattedDate = format(selectedDate, 'yyyy-MM-dd')
@@ -36,18 +37,27 @@ export function MenuPage() {
     if (!bookingScheduleId || !user) return
 
     setIsBooking(true)
-    const result = await createBooking(bookingScheduleId, user.id)
+    const result = await createBooking(bookingScheduleId, user.id, undefined, bookingQuantity)
     
     if (result.error) {
       toast.error(result.error.message)
     } else {
-      toast.success('Meal booked successfully!')
+      toast.success(`Booked ${bookingQuantity} portion${bookingQuantity > 1 ? 's' : ''} successfully!`)
       fetchSchedules(formattedDate)
     }
     
     setIsBooking(false)
     setBookingScheduleId(null)
+    setBookingQuantity(1)
   }
+
+  const handleCloseBooking = () => {
+    setBookingScheduleId(null)
+    setBookingQuantity(1)
+  }
+
+  // Get selected schedule details for the dialog
+  const selectedSchedule = schedules.find(s => s.id === bookingScheduleId)
 
   const filteredSchedules = schedules.filter((schedule) => {
     if (mealTypeFilter === 'all') return true
@@ -228,6 +238,7 @@ export function MenuPage() {
                       schedule={schedule}
                       onBook={(id) => setBookingScheduleId(id)}
                       userHasBooking={!!existingBooking}
+                      userBookingQuantity={existingBooking?.quantity || 1}
                       bookingTimeLimit={schedule.booking_time_limit || 60}
                     />
                   )
@@ -254,6 +265,7 @@ export function MenuPage() {
                       schedule={schedule}
                       onBook={(id) => setBookingScheduleId(id)}
                       userHasBooking={!!existingBooking}
+                      userBookingQuantity={existingBooking?.quantity || 1}
                       bookingTimeLimit={schedule.booking_time_limit || 60}
                     />
                   )
@@ -280,6 +292,7 @@ export function MenuPage() {
                       schedule={schedule}
                       onBook={(id) => setBookingScheduleId(id)}
                       userHasBooking={!!existingBooking}
+                      userBookingQuantity={existingBooking?.quantity || 1}
                       bookingTimeLimit={schedule.booking_time_limit || 60}
                     />
                   )
@@ -306,6 +319,7 @@ export function MenuPage() {
                       schedule={schedule}
                       onBook={(id) => setBookingScheduleId(id)}
                       userHasBooking={!!existingBooking}
+                      userBookingQuantity={existingBooking?.quantity || 1}
                       bookingTimeLimit={schedule.booking_time_limit || 60}
                     />
                   )
@@ -332,6 +346,7 @@ export function MenuPage() {
                       schedule={schedule}
                       onBook={(id) => setBookingScheduleId(id)}
                       userHasBooking={!!existingBooking}
+                      userBookingQuantity={existingBooking?.quantity || 1}
                       bookingTimeLimit={schedule.booking_time_limit || 60}
                     />
                   )
@@ -342,17 +357,81 @@ export function MenuPage() {
         </div>
       )}
 
-      {/* Booking Confirmation Dialog */}
-      <ConfirmDialog
+      {/* Booking Confirmation Dialog with Quantity Selector */}
+      <Modal
         isOpen={!!bookingScheduleId}
-        onClose={() => setBookingScheduleId(null)}
-        onConfirm={handleBookMeal}
+        onClose={handleCloseBooking}
         title={t('confirmBooking')}
-        message={t('confirmBookingMsg')}
-        confirmText={t('book')}
-        cancelText={t('cancel')}
-        isLoading={isBooking}
-      />
+        size="sm"
+      >
+        <div className="px-6 py-4 space-y-4">
+          {/* Meal Info */}
+          {selectedSchedule && (
+            <div className="bg-primary-50 rounded-lg p-3">
+              <p className="font-medium text-gray-900">{selectedSchedule.meal?.name}</p>
+              <p className="text-sm text-gray-500">
+                {selectedSchedule.scheduled_date} · {selectedSchedule.time_slot}
+              </p>
+            </div>
+          )}
+
+          {/* Quantity Selector */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              {t('quantity') || 'Quantity'}
+            </label>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setBookingQuantity(Math.max(1, bookingQuantity - 1))}
+                disabled={bookingQuantity <= 1 || isBooking}
+                className="w-10 h-10 rounded-lg border border-gray-300 flex items-center justify-center hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                -
+              </button>
+              <span className="w-12 text-center font-semibold text-lg">{bookingQuantity}</span>
+              <button
+                onClick={() => setBookingQuantity(Math.min(selectedSchedule?.remaining_capacity || 1, bookingQuantity + 1))}
+                disabled={bookingQuantity >= (selectedSchedule?.remaining_capacity || 1) || isBooking}
+                className="w-10 h-10 rounded-lg border border-gray-300 flex items-center justify-center hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                +
+              </button>
+            </div>
+            <p className="text-xs text-gray-500 mt-1">
+              {selectedSchedule?.remaining_capacity !== undefined && (
+                <>Available: {selectedSchedule.remaining_capacity} spots</>
+              )}
+            </p>
+          </div>
+
+          {/* Price Preview */}
+          {selectedSchedule && (
+            <div className="flex justify-between items-center pt-2 border-t border-gray-200">
+              <span className="text-sm text-gray-600">{t('total') || 'Total'}</span>
+              <span className="font-semibold text-primary-700">
+                ৳{((selectedSchedule.price ?? selectedSchedule.meal?.price ?? 0) * bookingQuantity)}
+              </span>
+            </div>
+          )}
+        </div>
+
+        <div className="flex justify-end gap-3 px-6 py-4 border-t border-gray-200 bg-gray-50 rounded-b-xl">
+          <button
+            onClick={handleCloseBooking}
+            disabled={isBooking}
+            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+          >
+            {t('cancel')}
+          </button>
+          <button
+            onClick={handleBookMeal}
+            disabled={isBooking}
+            className="px-4 py-2 text-sm font-medium text-white rounded-lg bg-primary-600 hover:bg-primary-700 disabled:opacity-50"
+          >
+            {isBooking ? 'Booking...' : t('book')}
+          </button>
+        </div>
+      </Modal>
     </div>
   )
 }

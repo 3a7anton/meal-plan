@@ -46,6 +46,7 @@ const STATUS_COLORS: Record<string, string> = {
 type ReportBooking = {
   booked_at: string
   status: string
+  quantity?: number
   profile?: { department: string | null }
   menu_schedule?: { scheduled_date: string; meal: { name: string } | null }
 }
@@ -86,7 +87,7 @@ export function ReportsPage() {
 
       const typedBookings = (bookings || []) as ReportBooking[]
 
-      // Process bookings by date
+      // Process bookings by date (accounting for quantity)
       const dateMap = new Map<string, number>()
       const days = timeRange === 'week' ? 7 : 30
       for (let i = 0; i < days; i++) {
@@ -97,7 +98,7 @@ export function ReportsPage() {
       typedBookings.forEach((booking) => {
         const date = format(new Date(booking.booked_at), 'yyyy-MM-dd')
         if (dateMap.has(date)) {
-          dateMap.set(date, (dateMap.get(date) || 0) + 1)
+          dateMap.set(date, (dateMap.get(date) || 0) + (booking.quantity || 1))
         }
       })
 
@@ -108,10 +109,10 @@ export function ReportsPage() {
         }))
       )
 
-      // Process status distribution
+      // Process status distribution (accounting for quantity)
       const statusMap = new Map<string, number>()
       typedBookings.forEach((booking) => {
-        statusMap.set(booking.status, (statusMap.get(booking.status) || 0) + 1)
+        statusMap.set(booking.status, (statusMap.get(booking.status) || 0) + (booking.quantity || 1))
       })
 
       setStatusDistribution(
@@ -121,11 +122,11 @@ export function ReportsPage() {
         }))
       )
 
-      // Process department stats
+      // Process department stats (accounting for quantity)
       const deptMap = new Map<string, number>()
       typedBookings.forEach((booking) => {
         const dept = booking.profile?.department || 'Unknown'
-        deptMap.set(dept, (deptMap.get(dept) || 0) + 1)
+        deptMap.set(dept, (deptMap.get(dept) || 0) + (booking.quantity || 1))
       })
 
       setDepartmentStats(
@@ -135,11 +136,11 @@ export function ReportsPage() {
           .slice(0, 5)
       )
 
-      // Process meal popularity
+      // Process meal popularity (accounting for quantity)
       const mealMap = new Map<string, number>()
       typedBookings.forEach((booking) => {
         const mealName = booking.menu_schedule?.meal?.name || 'Unknown'
-        mealMap.set(mealName, (mealMap.get(mealName) || 0) + 1)
+        mealMap.set(mealName, (mealMap.get(mealName) || 0) + (booking.quantity || 1))
       })
 
       setMealPopularity(

@@ -22,13 +22,14 @@ export function BookingCard({
   cancellationTimeLimit = 120,
   clickable = true
 }: BookingCardProps) {
-  const { menu_schedule, status, booked_at } = booking
+  const { menu_schedule, status, booked_at, quantity } = booking
   const { meal, scheduled_date, time_slot, price: schedulePrice } = menu_schedule
   const { t, language } = useTranslation()
   const isBangla = language === 'bn'
   
   // Use schedule price if set, otherwise fall back to meal price
   const displayPrice = schedulePrice ?? meal.price ?? 0
+  const bookingQuantity = quantity || 1
 
   const canCancel =
     (status === 'pending' || status === 'confirmed') &&
@@ -56,7 +57,14 @@ export function BookingCard({
             <span className="text-xs font-medium text-primary-600 uppercase tracking-wide">
               {t(meal.meal_type)}
             </span>
-            <h3 className="font-semibold text-gray-900 mt-1">{meal.name}</h3>
+            <h3 className="font-semibold text-gray-900 mt-1">
+              {meal.name}
+              {bookingQuantity > 1 && (
+                <span className="ml-2 text-sm font-normal text-primary-600 bg-primary-50 px-2 py-0.5 rounded">
+                  ×{isBangla ? toBengaliNumber(bookingQuantity) : bookingQuantity}
+                </span>
+              )}
+            </h3>
           </div>
           <StatusBadge status={status} />
         </div>
@@ -81,8 +89,15 @@ export function BookingCard({
         {/* Price */}
         {displayPrice > 0 && (
           <div className="flex items-center justify-between text-sm">
-            <span className="text-gray-500">{t('mealCost')}</span>
-            <span className="font-semibold text-primary-700">৳{isBangla ? toBengaliNumber(displayPrice) : displayPrice}</span>
+            <span className="text-gray-500">
+              {t('mealCost')}
+              {bookingQuantity > 1 && (
+                <span className="text-gray-400 ml-1">(×{bookingQuantity})</span>
+              )}
+            </span>
+            <span className="font-semibold text-primary-700">
+              ৳{isBangla ? toBengaliNumber(displayPrice * bookingQuantity) : (displayPrice * bookingQuantity)}
+            </span>
           </div>
         )}
 

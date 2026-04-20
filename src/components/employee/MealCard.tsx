@@ -11,6 +11,7 @@ interface MealCardProps {
   onBook?: (scheduleId: string) => void
   isBooking?: boolean
   userHasBooking?: boolean
+  userBookingQuantity?: number
   bookingTimeLimit?: number // in minutes
 }
 
@@ -19,6 +20,7 @@ export function MealCard({
   onBook, 
   isBooking, 
   userHasBooking,
+  userBookingQuantity = 1,
   bookingTimeLimit = 60 
 }: MealCardProps) {
   const { meal, time_slot, remaining_capacity = 0, capacity, scheduled_date, price: schedulePrice } = schedule
@@ -120,8 +122,16 @@ export function MealCard({
             disabled={isFull || isBooking || userHasBooking || !bookingAllowed}
             isLoading={isBooking}
           >
-            {userHasBooking ? t('alreadyBooked') : 
-             !bookingAllowed ? t('bookingClosed') :
+            {userHasBooking ? (
+              <span className="flex items-center gap-1">
+                {t('alreadyBooked')}
+                {userBookingQuantity > 1 && (
+                  <span className="bg-white/20 px-1.5 py-0.5 rounded text-xs">
+                    ×{isBangla ? toBengaliNumber(userBookingQuantity) : userBookingQuantity}
+                  </span>
+                )}
+              </span>
+            ) : !bookingAllowed ? t('bookingClosed') :
              isFull ? t('full') : t('book')}
           </Button>
         )}

@@ -75,12 +75,13 @@ export function PaymentsPage() {
       const userBills: UserBill[] = (profiles || []).map((profile) => {
         const existingPayment = payments?.find((p) => p.user_id === profile.id)
 
-        // Calculate from confirmed bookings this month
+        // Calculate from confirmed bookings this month (accounting for quantity)
         const userBookings = (bookings || []).filter((b) => b.user_id === profile.id)
-        const calculated_meal_count = userBookings.length
+        const calculated_meal_count = userBookings.reduce((sum, b) => sum + (b.quantity || 1), 0)
         const calculated_amount = userBookings.reduce((sum, b) => {
           const price = (b.menu_schedule as any)?.meal?.price || 0
-          return sum + price
+          const quantity = b.quantity || 1
+          return sum + (price * quantity)
         }, 0)
 
         return {

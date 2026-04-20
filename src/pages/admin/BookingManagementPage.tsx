@@ -47,12 +47,13 @@ export function BookingManagementPage() {
   }
 
   const exportToCSV = () => {
-    const headers = ['User', 'Email', 'Department', 'Meal', 'Date', 'Time', 'Status', 'Booked At']
+    const headers = ['User', 'Email', 'Department', 'Meal', 'Quantity', 'Date', 'Time', 'Status', 'Booked At']
     const rows = filteredBookings.map((b) => [
       b.profile?.full_name || 'Unknown',
       b.profile?.email || '',
       b.profile?.department || '',
       b.menu_schedule?.meal?.name || '',
+      b.quantity || 1,
       b.menu_schedule?.scheduled_date || '',
       b.menu_schedule?.time_slot || '',
       b.status,
@@ -203,6 +204,7 @@ export function BookingManagementPage() {
                   <tr className="border-b border-gray-200">
                     <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">User</th>
                     <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Meal</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Qty</th>
                     <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Date</th>
                     <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Time</th>
                     <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Status</th>
@@ -220,6 +222,11 @@ export function BookingManagementPage() {
                       <td className="px-4 py-3">
                         <p className="text-gray-900">{booking.menu_schedule?.meal?.name}</p>
                         <p className="text-sm text-gray-500 capitalize">{booking.menu_schedule?.meal?.meal_type}</p>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-primary-100 text-primary-700 font-semibold text-sm">
+                          {booking.quantity || 1}
+                        </span>
                       </td>
                       <td className="px-4 py-3 text-gray-600">
                         {booking.menu_schedule?.scheduled_date &&

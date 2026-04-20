@@ -55,14 +55,18 @@ export function BookingsPage() {
     (b) => b.status === 'denied' || b.status === 'cancelled'
   )
 
-  // Calculate monthly total cost of confirmed bookings
+  // Calculate monthly total cost of confirmed bookings (accounting for quantity)
   const currentMonth = new Date().toISOString().slice(0, 7) // 'YYYY-MM'
   const monthlyTotal = bookings
     .filter((b) => {
       const bookingMonth = b.booked_at?.slice(0, 7)
       return b.status === 'confirmed' && bookingMonth === currentMonth
     })
-    .reduce((sum, b) => sum + ((b.menu_schedule?.meal as any)?.price || 0), 0)
+    .reduce((sum, b) => {
+      const price = (b.menu_schedule?.meal as any)?.price || 0
+      const quantity = b.quantity || 1
+      return sum + (price * quantity)
+    }, 0)
 
   const isInitialLoading = isLoading && bookings.length === 0
 
@@ -217,8 +221,13 @@ export function BookingsPage() {
                 <span className="text-xs font-medium text-primary-600 uppercase tracking-wide">
                   {t(viewingBooking.menu_schedule.meal.meal_type)}
                 </span>
-                <h3 className="font-semibold text-gray-900 text-lg">
+                <h3 className="font-semibold text-gray-900 text-lg flex items-center gap-2">
                   {viewingBooking.menu_schedule.meal.name}
+                  {(viewingBooking.quantity || 1) > 1 && (
+                    <span className="text-sm font-normal text-primary-600 bg-primary-50 px-2 py-0.5 rounded">
+                      ×{viewingBooking.quantity}
+                    </span>
+                  )}
                 </h3>
                 <p className="text-sm text-gray-500 mt-1">
                   {viewingBooking.menu_schedule.meal.description}
@@ -244,7 +253,12 @@ export function BookingsPage() {
                 <CreditCard className="h-4 w-4 text-gray-400" />
                 <span className="text-gray-600">{t('price')}:</span>
                 <span className="font-medium">
-                  ৳{(viewingBooking.menu_schedule.price || viewingBooking.menu_schedule.meal.price || 0)}
+                  ৳{((viewingBooking.menu_schedule.price || viewingBooking.menu_schedule.meal.price || 0) * (viewingBooking.quantity || 1))}
+                  {(viewingBooking.quantity || 1) > 1 && (
+                    <span className="text-gray-400 text-xs ml-1">
+                      (৳{viewingBooking.menu_schedule.price || viewingBooking.menu_schedule.meal.price || 0} × {viewingBooking.quantity})
+                    </span>
+                  )}
                 </span>
               </div>
               <div className="flex items-center gap-2 text-sm">

@@ -131,6 +131,7 @@ export interface Database {
           menu_schedule_id: string
           status: 'pending' | 'confirmed' | 'denied' | 'cancelled'
           notes: string | null
+          quantity: number
           booked_at: string
           updated_at: string
         }
@@ -140,6 +141,7 @@ export interface Database {
           menu_schedule_id: string
           status?: 'pending' | 'confirmed' | 'denied' | 'cancelled'
           notes?: string | null
+          quantity?: number
           booked_at?: string
           updated_at?: string
         }
@@ -149,6 +151,7 @@ export interface Database {
           menu_schedule_id?: string
           status?: 'pending' | 'confirmed' | 'denied' | 'cancelled'
           notes?: string | null
+          quantity?: number
           booked_at?: string
           updated_at?: string
         }
@@ -284,6 +287,7 @@ export interface Database {
           p_user_id: string
           p_menu_schedule_id: string
           p_notes?: string | null
+          p_quantity?: number
         }
         Returns: string
       }
