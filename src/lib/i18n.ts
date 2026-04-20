@@ -195,6 +195,37 @@ const en: Translations = {
   language: 'Language',
   english: 'English',
   bangla: 'Bangla',
+  
+  // Meal History
+  mealHistory: 'Meal History',
+  viewAllMealHistory: 'View all meal bookings and history',
+  viewOwnMealHistory: 'View your meal booking history',
+  totalMeals: 'Total Meals',
+  totalSpent: 'Total Spent',
+  totalBookings: 'Total Bookings',
+  exportCSV: 'Export CSV',
+  from: 'From',
+  to: 'To',
+  allStatus: 'All Status',
+  filters: 'Filters',
+  showing: 'Showing',
+  to2: 'to',
+  of: 'of',
+  noMealHistory: 'No meal history found',
+  tryAdjustingFilters: 'Try adjusting your filters',
+  noBookingsYet: 'You haven\'t booked any meals yet',
+  noBookingsInSystem: 'No bookings in the system yet',
+  meal: 'Meal',
+  user: 'User',
+  department2: 'Department',
+  price2: 'Price',
+  unknown: 'Unknown',
+  noDepartment: 'No Department',
+  you: 'Me',
+  
+  // Currency
+  currency: '$',
+  currencyBDT: '৳',
 };
 
 const bn: Translations = {
@@ -392,6 +423,37 @@ const bn: Translations = {
   language: 'ভাষা',
   english: 'ইংরেজি',
   bangla: 'বাংলা',
+  
+  // Meal History
+  mealHistory: 'খাবারের ইতিহাস',
+  viewAllMealHistory: 'সব খাবারের বুকিং এবং ইতিহাস দেখুন',
+  viewOwnMealHistory: 'আপনার খাবারের বুকিং ইতিহাস দেখুন',
+  totalMeals: 'মোট খাবার',
+  totalSpent: 'মোট খরচ',
+  totalBookings: 'মোট বুকিং',
+  exportCSV: 'CSV এক্সপোর্ট করুন',
+  from: 'থেকে',
+  to: 'পর্যন্ত',
+  allStatus: 'সব অবস্থা',
+  filters: 'ফিল্টার',
+  showing: 'দেখাচ্ছে',
+  to2: 'থেকে',
+  of: 'মধ্যে',
+  noMealHistory: 'কোনো খাবারের ইতিহাস পাওয়া যায়নি',
+  tryAdjustingFilters: 'আপনার ফিল্টার সমায়োজন করুন',
+  noBookingsYet: 'আপনি এখনো কোনো খাবার বুক করেননি',
+  noBookingsInSystem: 'সিস্টেমে এখনো কোনো বুকিং নেই',
+  meal: 'খাবার',
+  user: 'ব্যবহারকারী',
+  department2: 'বিভাগ',
+  price2: 'মূল্য',
+  unknown: 'অজানা',
+  noDepartment: 'কোনো বিভাগ নেই',
+  you: 'আমি',
+  
+  // Currency
+  currency: '$',
+  currencyBDT: '৳',
 };
 
 const translations = { en, bn };

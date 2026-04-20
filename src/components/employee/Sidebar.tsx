@@ -47,7 +47,7 @@ export function Sidebar({ isAdmin = false }: SidebarProps) {
     { to: '/dashboard', icon: LayoutDashboard, label: t('dashboard') },
     { to: '/menu', icon: UtensilsCrossed, label: t('menu') },
     { to: '/bookings', icon: CalendarDays, label: t('bookings') },
-    { to: '/meal-history', icon: History, label: 'Meal History' },
+    { to: '/meal-history', icon: History, label: t('mealHistory') },
     { to: '/profile', icon: UserCircle, label: t('profile') },
   ]
 
@@ -76,7 +76,7 @@ export function Sidebar({ isAdmin = false }: SidebarProps) {
     }
     
     // Meal History is available to all admins
-    links.push({ to: '/admin/meal-history', icon: History, label: 'Meal History' })
+    links.push({ to: '/admin/meal-history', icon: History, label: t('mealHistory') })
     
     return links
   }

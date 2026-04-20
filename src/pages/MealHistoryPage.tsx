@@ -13,6 +13,7 @@ import {
 } from 'lucide-react'
 import { supabase } from '../lib/supabaseClient'
 import { Card, CardContent, Button, Input, Select, Badge } from '../components/ui'
+import { useTranslation } from '../hooks/useTranslation'
 import toast from 'react-hot-toast'
 
 interface MealHistoryItem {
@@ -43,6 +44,7 @@ interface MealHistoryItem {
 }
 
 export function MealHistoryPage() {
+  const { t, language } = useTranslation()
   const [history, setHistory] = useState<MealHistoryItem[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isAdmin, setIsAdmin] = useState(false)
@@ -52,6 +54,9 @@ export function MealHistoryPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 10
+  
+  // Currency symbol based on language
+  const currencySymbol = language === 'bn' ? t('currencyBDT') : t('currency')
 
   useEffect(() => {
     fetchHistory()
@@ -62,7 +67,7 @@ export function MealHistoryPage() {
     try {
       const { data: session } = await supabase.auth.getSession()
       if (!session.session) {
-        toast.error('Please log in')
+        toast.error(t('signInFailed'))
         return
       }
 
@@ -86,21 +91,21 @@ export function MealHistoryPage() {
       setIsAdmin(result.isAdmin)
     } catch (error) {
       console.error('Error fetching history:', error)
-      toast.error('Failed to load meal history')
+      toast.error(t('error'))
     } finally {
       setIsLoading(false)
     }
   }
 
   const getStatusBadge = (status: string) => {
-    const variants: Record<string, { variant: any; label: string }> = {
-      confirmed: { variant: 'success', label: 'Confirmed' },
-      pending: { variant: 'warning', label: 'Pending' },
-      denied: { variant: 'danger', label: 'Denied' },
-      cancelled: { variant: 'default', label: 'Cancelled' }
+    const variants: Record<string, { variant: any; labelKey: string }> = {
+      confirmed: { variant: 'success', labelKey: 'confirmed' },
+      pending: { variant: 'warning', labelKey: 'pending' },
+      denied: { variant: 'danger', labelKey: 'denied' },
+      cancelled: { variant: 'default', labelKey: 'cancelled' }
     }
-    const config = variants[status] || { variant: 'default', label: status }
-    return <Badge variant={config.variant}>{config.label}</Badge>
+    const config = variants[status] || { variant: 'default', labelKey: status }
+    return <Badge variant={config.variant}>{t(config.labelKey)}</Badge>
   }
 
   const filteredHistory = history.filter(item => {
@@ -130,12 +135,12 @@ export function MealHistoryPage() {
 
   const handleExport = () => {
     const csv = [
-      ['Date', 'Time', 'Meal', 'User', 'Department', 'Status', 'Price'].join(','),
+      [t('date'), t('time'), t('meal'), t('user'), t('department2'), t('status'), t('price2')].join(','),
       ...filteredHistory.map(item => [
         item.schedule?.scheduled_date,
         item.schedule?.time_slot,
         item.meal?.name,
-        item.user?.full_name || 'Me',
+        item.user?.full_name || t('you'),
         item.user?.department || '-',
         item.status,
         item.schedule?.price || 0
@@ -149,7 +154,7 @@ export function MealHistoryPage() {
     a.download = `meal-history-${format(new Date(), 'yyyy-MM-dd')}.csv`
     a.click()
     URL.revokeObjectURL(url)
-    toast.success('History exported')
+    toast.success(t('exportCSV'))
   }
 
   return (
@@ -157,14 +162,14 @@ export function MealHistoryPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Meal History</h1>
+          <h1 className="text-2xl font-bold text-gray-900">{t('mealHistory')}</h1>
           <p className="text-gray-600 mt-1">
-            {isAdmin ? 'View all meal bookings and history' : 'View your meal booking history'}
+            {isAdmin ? t('viewAllMealHistory') : t('viewOwnMealHistory')}
           </p>
         </div>
         <Button variant="outline" onClick={handleExport} className="flex items-center gap-2">
           <Download className="h-4 w-4" />
-          Export CSV
+          {t('exportCSV')}
         </Button>
       </div>
 
@@ -177,7 +182,7 @@ export function MealHistoryPage() {
             </div>
             <div>
               <p className="text-2xl font-bold text-gray-900">{totalMeals}</p>
-              <p className="text-sm text-gray-500">Total Meals</p>
+              <p className="text-sm text-gray-500">{t('totalMeals')}</p>
             </div>
           </CardContent>
         </Card>
@@ -188,8 +193,8 @@ export function MealHistoryPage() {
               <DollarSign className="h-6 w-6 text-green-600" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-gray-900">${totalSpent.toFixed(2)}</p>
-              <p className="text-sm text-gray-500">Total Spent</p>
+              <p className="text-2xl font-bold text-gray-900">{currencySymbol}{totalSpent.toFixed(2)}</p>
+              <p className="text-sm text-gray-500">{t('totalSpent')}</p>
             </div>
           </CardContent>
         </Card>
@@ -201,7 +206,7 @@ export function MealHistoryPage() {
             </div>
             <div>
               <p className="text-2xl font-bold text-gray-900">{filteredHistory.length}</p>
-              <p className="text-sm text-gray-500">Total Bookings</p>
+              <p className="text-sm text-gray-500">{t('totalBookings')}</p>
             </div>
           </CardContent>
         </Card>
@@ -213,11 +218,11 @@ export function MealHistoryPage() {
           <div className="flex flex-wrap gap-4 items-end">
             <div className="flex gap-2 items-center">
               <Filter className="h-4 w-4 text-gray-500" />
-              <span className="text-sm font-medium text-gray-700">Filters:</span>
+              <span className="text-sm font-medium text-gray-700">{t('filters')}:</span>
             </div>
             
             <div>
-              <label className="text-xs text-gray-500 block mb-1">From</label>
+              <label className="text-xs text-gray-500 block mb-1">{t('from')}</label>
               <Input
                 type="date"
                 value={startDate}
@@ -227,7 +232,7 @@ export function MealHistoryPage() {
             </div>
 
             <div>
-              <label className="text-xs text-gray-500 block mb-1">To</label>
+              <label className="text-xs text-gray-500 block mb-1">{t('to')}</label>
               <Input
                 type="date"
                 value={endDate}
@@ -237,14 +242,14 @@ export function MealHistoryPage() {
             </div>
 
             <div>
-              <label className="text-xs text-gray-500 block mb-1">Status</label>
+              <label className="text-xs text-gray-500 block mb-1">{t('status')}</label>
               <Select
                 options={[
-                  { value: 'all', label: 'All Status' },
-                  { value: 'confirmed', label: 'Confirmed' },
-                  { value: 'pending', label: 'Pending' },
-                  { value: 'denied', label: 'Denied' },
-                  { value: 'cancelled', label: 'Cancelled' }
+                  { value: 'all', label: t('allStatus') },
+                  { value: 'confirmed', label: t('confirmed') },
+                  { value: 'pending', label: t('pending') },
+                  { value: 'denied', label: t('denied') },
+                  { value: 'cancelled', label: t('cancelled') }
                 ]}
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
@@ -254,10 +259,10 @@ export function MealHistoryPage() {
 
             {isAdmin && (
               <div className="flex-1 min-w-[200px]">
-                <label className="text-xs text-gray-500 block mb-1">Search User/Meal</label>
+                <label className="text-xs text-gray-500 block mb-1">{t('search')}</label>
                 <Input
                   type="text"
-                  placeholder="Search..."
+                  placeholder={t('search')}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
@@ -273,16 +278,16 @@ export function MealHistoryPage() {
           {isLoading ? (
             <div className="p-8 text-center">
               <div className="animate-spin h-8 w-8 border-4 border-primary-600 border-t-transparent rounded-full mx-auto" />
-              <p className="mt-2 text-gray-600">Loading history...</p>
+              <p className="mt-2 text-gray-600">{t('loading')}</p>
             </div>
           ) : paginatedHistory.length === 0 ? (
             <div className="p-8 text-center">
               <UtensilsCrossed className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-              <p className="text-gray-600">No meal history found</p>
+              <p className="text-gray-600">{t('noMealHistory')}</p>
               <p className="text-sm text-gray-500 mt-1">
                 {startDate || endDate || statusFilter !== 'all' 
-                  ? 'Try adjusting your filters'
-                  : isAdmin ? 'No bookings in the system yet' : 'You haven\'t booked any meals yet'}
+                  ? t('tryAdjustingFilters')
+                  : isAdmin ? t('noBookingsInSystem') : t('noBookingsYet')}
               </p>
             </div>
           ) : (
@@ -291,13 +296,13 @@ export function MealHistoryPage() {
                 <table className="w-full">
                   <thead className="bg-gray-50 border-b border-gray-200">
                     <tr>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Date & Time</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Meal</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">{t('date')} & {t('time')}</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">{t('meal')}</th>
                       {isAdmin && (
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">User</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">{t('user')}</th>
                       )}
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Status</th>
-                      <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600">Price</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">{t('status')}</th>
+                      <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600">{t('price2')}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
@@ -334,7 +339,7 @@ export function MealHistoryPage() {
                             )}
                             <div>
                               <p className="text-sm font-medium text-gray-900">
-                                {item.meal?.name || 'Unknown Meal'}
+                                {item.meal?.name || t('unknown')}
                               </p>
                               <p className="text-xs text-gray-500">
                                 {item.meal?.meal_type}
@@ -348,10 +353,10 @@ export function MealHistoryPage() {
                               <User className="h-4 w-4 text-gray-400" />
                               <div>
                                 <p className="text-sm font-medium text-gray-900">
-                                  {item.user?.full_name || 'Unknown'}
+                                  {item.user?.full_name || t('unknown')}
                                 </p>
                                 <p className="text-xs text-gray-500">
-                                  {item.user?.department || 'No Department'}
+                                  {item.user?.department || t('noDepartment')}
                                 </p>
                               </div>
                             </div>
@@ -362,7 +367,7 @@ export function MealHistoryPage() {
                         </td>
                         <td className="px-4 py-3 text-right">
                           <p className="text-sm font-medium text-gray-900">
-                            ${item.schedule?.price?.toFixed(2) || '0.00'}
+                            {currencySymbol}{item.schedule?.price?.toFixed(2) || '0.00'}
                           </p>
                           <p className="text-xs text-gray-500">
                             {format(parseISO(item.booked_at), 'MMM d, HH:mm')}
@@ -378,7 +383,7 @@ export function MealHistoryPage() {
               {totalPages > 1 && (
                 <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200">
                   <p className="text-sm text-gray-600">
-                    Showing {(currentPage - 1) * itemsPerPage + 1} to {Math.min(currentPage * itemsPerPage, filteredHistory.length)} of {filteredHistory.length}
+                    {t('showing')} {(currentPage - 1) * itemsPerPage + 1} {t('to2')} {Math.min(currentPage * itemsPerPage, filteredHistory.length)} {t('of')} {filteredHistory.length}
                   </p>
                   <div className="flex gap-2">
                     <Button
