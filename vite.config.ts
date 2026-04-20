@@ -1,9 +1,171 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react-swc'
+import { createClient } from '@supabase/supabase-js'
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react(),
+    {
+      name: 'api-routes',
+      configureServer(server) {
+        server.middlewares.use('/api/', async (req, res, next) => {
+          try {
+            // Extract route from URL
+            const url = req.url || ''
+            const routeMatch = url.match(/^\/api\/([^?]+)/)
+            if (!routeMatch) return next()
+            
+            const routePath = routeMatch[1].replace(/\/$/, '')
+            
+            // Handle CORS for all API routes
+            res.setHeader('Access-Control-Allow-Origin', '*')
+            res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS')
+            res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+            
+            if (req.method === 'OPTIONS') {
+              res.statusCode = 200
+              res.end()
+              return
+            }
+            
+            // Only handle bookings/history for now
+            if (routePath === 'bookings/history') {
+              
+              // Get token from headers
+              const authHeader = req.headers.authorization || ''
+              const token = authHeader.replace('Bearer ', '')
+              
+              if (!token) {
+                res.statusCode = 401
+                res.setHeader('Content-Type', 'application/json')
+                res.end(JSON.stringify({ error: 'No authorization token' }))
+                return
+              }
+              
+              // Initialize Supabase client
+              const supabaseUrl = process.env.VITE_SUPABASE_URL
+              const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+              
+              if (!supabaseUrl || !supabaseServiceKey) {
+                res.statusCode = 500
+                res.setHeader('Content-Type', 'application/json')
+                res.end(JSON.stringify({ error: 'Server configuration error' }))
+                return
+              }
+              
+              const supabase = createClient(supabaseUrl, supabaseServiceKey)
+              
+              // Verify token
+              const { data: { user }, error: authError } = await supabase.auth.getUser(token)
+              if (authError || !user) {
+                res.statusCode = 401
+                res.setHeader('Content-Type', 'application/json')
+                res.end(JSON.stringify({ error: 'Invalid token' }))
+                return
+              }
+              
+              // Get user role
+              const { data: profile } = await supabase
+                .from('profiles')
+                .select('role')
+                .eq('id', user.id)
+                .single()
+              
+              const isAdmin = profile?.role === 'admin' || profile?.role === 'food_editor' || 
+                             profile?.role === 'finance_editor'
+              
+              // Parse query params
+              const queryParams = new URLSearchParams(url.split('?')[1] || '')
+              const startDate = queryParams.get('startDate')
+              const endDate = queryParams.get('endDate')
+              const status = queryParams.get('status')
+              
+              // Build query
+              let query = supabase
+                .from('bookings')
+                .select(`
+                  id,
+                  status,
+                  notes,
+                  booked_at,
+                  updated_at,
+                  user_id,
+                  profiles:user_id (id, full_name, email, department),
+                  menu_schedule:menu_schedule_id (
+                    id,
+                    scheduled_date,
+                    time_slot,
+                    price,
+                    meal:meal_id (id, name, description, meal_type, image_url)
+                  )
+                `)
+              
+              // Filter by user if not admin
+              if (!isAdmin) {
+                query = query.eq('user_id', user.id)
+              }
+              
+              if (startDate) {
+                query = query.gte('menu_schedule.scheduled_date', startDate)
+              }
+              if (endDate) {
+                query = query.lte('menu_schedule.scheduled_date', endDate)
+              }
+              if (status && status !== 'all') {
+                query = query.eq('status', status)
+              }
+              
+              query = query.order('booked_at', { ascending: false })
+              
+              const { data: bookings, error } = await query
+              
+              if (error) {
+                console.error('Error fetching bookings:', error)
+                res.statusCode = 500
+                res.setHeader('Content-Type', 'application/json')
+                res.end(JSON.stringify({ error: 'Failed to fetch booking history' }))
+                return
+              }
+              
+              // Transform data
+              const history = bookings?.map((booking: any) => ({
+                id: booking.id,
+                status: booking.status,
+                notes: booking.notes,
+                booked_at: booking.booked_at,
+                updated_at: booking.updated_at,
+                user: booking.profiles,
+                meal: booking.menu_schedule?.meal,
+                schedule: {
+                  id: booking.menu_schedule?.id,
+                  scheduled_date: booking.menu_schedule?.scheduled_date,
+                  time_slot: booking.menu_schedule?.time_slot,
+                  price: booking.menu_schedule?.price,
+                }
+              }))
+              
+              res.statusCode = 200
+              res.setHeader('Content-Type', 'application/json')
+              res.end(JSON.stringify({ 
+                success: true, 
+                data: history || [],
+                isAdmin 
+              }))
+              return
+            }
+            
+            next()
+          } catch (error) {
+            console.error('API Error:', error)
+            res.statusCode = 500
+            res.setHeader('Content-Type', 'application/json')
+            res.end(JSON.stringify({ error: 'Internal server error' }))
+          }
+        })
+      }
+    }
+  ],
   build: {
     rollupOptions: {
       output: {
