@@ -10,6 +10,7 @@ import {
   ChevronLeft,
   ChevronRight,
   UserCircle,
+  History,
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { useAuthStore, useUIStore } from '../../store'
@@ -46,6 +47,7 @@ export function Sidebar({ isAdmin = false }: SidebarProps) {
     { to: '/dashboard', icon: LayoutDashboard, label: t('dashboard') },
     { to: '/menu', icon: UtensilsCrossed, label: t('menu') },
     { to: '/bookings', icon: CalendarDays, label: t('bookings') },
+    { to: '/meal-history', icon: History, label: 'Meal History' },
     { to: '/profile', icon: UserCircle, label: t('profile') },
   ]
 
@@ -72,6 +74,9 @@ export function Sidebar({ isAdmin = false }: SidebarProps) {
     if (canViewReports(profile)) {
       links.push({ to: '/admin/reports', icon: FileBarChart, label: t('reports') })
     }
+    
+    // Meal History is available to all admins
+    links.push({ to: '/admin/meal-history', icon: History, label: 'Meal History' })
     
     return links
   }

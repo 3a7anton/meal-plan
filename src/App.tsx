@@ -25,6 +25,9 @@ import { UserManagementPage } from './pages/admin/UserManagementPage'
 import { ReportsPage } from './pages/admin/ReportsPage'
 import { PaymentsPage } from './pages/admin/PaymentsPage'
 
+// Shared Pages
+import { MealHistoryPage } from './pages/MealHistoryPage'
+
 function App() {
   const { initialize } = useAuthStore()
 
@@ -53,6 +56,7 @@ function App() {
           <Route path="/menu" element={<MenuPage />} />
           <Route path="/bookings" element={<BookingsPage />} />
           <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/meal-history" element={<MealHistoryPage />} />
         </Route>
 
         {/* Admin Routes - Dashboard and Reports accessible to any admin */}
@@ -109,6 +113,17 @@ function App() {
           }
         >
           <Route path="/admin/payments" element={<PaymentsPage />} />
+        </Route>
+
+        {/* Meal History - All authenticated users */}
+        <Route
+          element={
+            <ProtectedRoute>
+              <Layout isAdmin />
+            </ProtectedRoute>
+          }
+        >
+          <Route path="/admin/meal-history" element={<MealHistoryPage />} />
         </Route>
 
         {/* Redirects */}
