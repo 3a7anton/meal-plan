@@ -172,6 +172,25 @@ const en: Translations = {
   confirmNewPassword: 'Confirm New Password',
   updatePassword: 'Update Password',
   
+  // Password Reset
+  forgotPasswordTitle: 'Reset Your Password',
+  resetPasswordTitle: 'Enter New Password',
+  sendVerificationCode: 'Send Verification Code',
+  sendResetLink: 'Send Reset Link',
+  verificationCodeSent: 'Verification code sent to your email!',
+  resetLinkSentTo: 'We\'ve sent a password reset link to',
+  clickLinkToReset: 'Click the link in your email to reset your password.',
+  checkYourEmail: 'Check your email',
+  enterVerificationCode: 'Enter Verification Code',
+  backToLogin: 'Back to login',
+  resendCode: 'Resend code',
+  resendLink: 'Resend link',
+  verificationCode: 'Verification Code',
+  codeTooShort: 'Code must be at least 6 characters',
+  resetPassword: 'Reset Password',
+  passwordResetSuccess: 'Password reset successfully! Please login with your new password.',
+  passwordResetFailed: 'Failed to reset password',
+  
   // Language
   language: 'Language',
   english: 'English',
@@ -349,6 +368,25 @@ const bn: Translations = {
   newPassword: 'নতুন পাসওয়ার্ড',
   confirmNewPassword: 'নতুন পাসওয়ার্ড নিশ্চিত করুন',
   updatePassword: 'পাসওয়ার্ড আপডেট করুন',
+  
+  // Password Reset
+  forgotPasswordTitle: 'আপনার পাসওয়ার্ড রিসেট করুন',
+  resetPasswordTitle: 'নতুন পাসওয়ার্ড দিন',
+  sendVerificationCode: 'যাচাইকরণ কোড পাঠান',
+  sendResetLink: 'রিসেট লিংক পাঠান',
+  verificationCodeSent: 'যাচাইকরণ কোড আপনার ইমেইলে পাঠানো হয়েছে!',
+  resetLinkSentTo: 'আমরা একটি পাসওয়ার্ড রিসেট লিংক পাঠিয়েছি',
+  clickLinkToReset: 'আপনার ইমেইলে লিংকটি ক্লিক করুন।',
+  checkYourEmail: 'আপনার ইমেইল চেক করুন',
+  enterVerificationCode: 'যাচাইকরণ কোড দিন',
+  backToLogin: 'লগইনে ফিরে যান',
+  resendCode: 'কোড আবার পাঠান',
+  resendLink: 'লিংক আবার পাঠান',
+  verificationCode: 'যাচাইকরণ কোড',
+  codeTooShort: 'কোড কমপক্ষে ৬ অক্ষর হতে হবে',
+  resetPassword: 'পাসওয়ার্ড রিসেট করুন',
+  passwordResetSuccess: 'পাসওয়ার্ড সফলভাবে রিসেট হয়েছে! নতুন পাসওয়ার্ড দিয়ে লগইন করুন।',
+  passwordResetFailed: 'পাসওয়ার্ড রিসেট করতে ব্যর্থ',
   
   // Language
   language: 'ভাষা',

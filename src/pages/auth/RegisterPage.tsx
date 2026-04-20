@@ -111,13 +111,13 @@ export function RegisterPage() {
                 label={t('department')}
                 options={[
                   { value: '', label: t('selectDepartment') },
-                  { value: 'Engineering', label: t('engineering') },
-                  { value: 'Design', label: t('design') },
-                  { value: 'Marketing', label: t('marketing') },
-                  { value: 'Sales', label: t('sales') },
-                  { value: 'HR', label: t('hr') },
-                  { value: 'Finance', label: t('finance') },
-                  { value: 'Operations', label: t('operations') },
+                  { value: 'Academic Department', label: 'Academic Department' },
+                  { value: 'Hifz Department', label: 'Hifz Department' },
+                  { value: 'IT Department', label: 'IT Department' },
+                  { value: 'HR', label: 'HR' },
+                  { value: 'Finance', label: 'Finance' },
+                  { value: 'Admission', label: 'Admission' },
+                  { value: 'Admin', label: 'Admin' },
                 ]}
                 {...register('department')}
               />

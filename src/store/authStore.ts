@@ -17,6 +17,8 @@ interface AuthState {
   signOut: () => Promise<void>
   fetchProfile: (userId: string) => Promise<void>
   updateProfile: (updates: Partial<Pick<Profile, 'full_name' | 'phone' | 'department' | 'avatar_url'>>) => Promise<{ error: Error | null }>
+  sendPasswordResetCode: (email: string) => Promise<{ error: Error | null }>
+  verifyCodeAndResetPassword: (email: string, code: string, newPassword: string) => Promise<{ error: Error | null }>
 }
 
 interface SignUpData {
@@ -176,6 +178,42 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       return { error: null }
     } catch (error) {
       return { error: error as Error }
+    }
+  },
+
+  sendPasswordResetCode: async (email: string) => {
+    set({ isLoading: true })
+    try {
+      // Use Supabase built-in password reset (sends magic link to email)
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      })
+
+      if (error) throw error
+
+      return { error: null }
+    } catch (error) {
+      return { error: error as Error }
+    } finally {
+      set({ isLoading: false })
+    }
+  },
+
+  verifyCodeAndResetPassword: async (_email: string, _code: string, newPassword: string) => {
+    set({ isLoading: true })
+    try {
+      // Update password using Supabase (user is already authenticated via magic link)
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword,
+      })
+
+      if (error) throw error
+
+      return { error: null }
+    } catch (error) {
+      return { error: error as Error }
+    } finally {
+      set({ isLoading: false })
     }
   },
 }))

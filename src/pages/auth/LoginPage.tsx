@@ -112,17 +112,22 @@ export function LoginPage() {
                 {...register('password')}
               />
 
-              {/* Remember Me */}
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="rememberMe"
-                  {...register('rememberMe')}
-                  className="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
-                />
-                <label htmlFor="rememberMe" className="text-sm text-gray-600">
-                  {t('rememberMe')}
-                </label>
+              {/* Remember Me & Forgot Password */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="rememberMe"
+                    {...register('rememberMe')}
+                    className="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                  />
+                  <label htmlFor="rememberMe" className="text-sm text-gray-600">
+                    {t('rememberMe')}
+                  </label>
+                </div>
+                <Link to="/forgot-password" className="text-sm font-medium text-primary-600 hover:text-primary-500">
+                  {t('forgotPassword')}
+                </Link>
               </div>
 
               <Button
