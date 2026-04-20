@@ -180,14 +180,6 @@ export function UserManagementPage() {
             </span>
           </Badge>
         )
-      case 'admin':
-        return (
-          <Badge variant="warning">
-            <span className="flex items-center gap-1">
-              <Shield className="h-3 w-3" /> Admin
-            </span>
-          </Badge>
-        )
       default:
         return <Badge variant="default">Employee</Badge>
     }

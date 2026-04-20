@@ -184,6 +184,17 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   sendPasswordResetCode: async (email: string) => {
     set({ isLoading: true })
     try {
+      // First check if user exists in profiles table
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('email', email)
+        .single()
+
+      if (profileError || !profile) {
+        throw new Error('User with this email does not exist')
+      }
+
       // Use Supabase built-in password reset (sends magic link to email)
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/reset-password`,
