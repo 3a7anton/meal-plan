@@ -9,8 +9,9 @@ import {
   UtensilsCrossed 
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, Button, StatusBadge, CardSkeleton } from '../../components/ui'
-import { useBookingStore } from '../../store'
+import { useBookingStore, useAuthStore } from '../../store'
 import { supabase } from '../../lib/supabaseClient'
+import { canManageBookings } from '../../lib/roles'
 import { format } from 'date-fns'
 import toast from 'react-hot-toast'
 
@@ -25,8 +26,10 @@ interface DashboardStats {
 
 export function AdminDashboardPage() {
   const { bookings, fetchAllBookings, updateBookingStatus, isLoading } = useBookingStore()
+  const { profile } = useAuthStore()
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [loadingStats, setLoadingStats] = useState(true)
+  const canApproveBookings = canManageBookings(profile)
 
   const today = format(new Date(), 'yyyy-MM-dd')
 
@@ -256,22 +259,26 @@ export function AdminDashboardPage() {
                         <StatusBadge status={booking.status} />
                       </td>
                       <td className="px-4 py-3">
-                        <div className="flex justify-end gap-2">
-                          <Button
-                            variant="success"
-                            size="sm"
-                            onClick={() => handleApprove(booking.id)}
-                          >
-                            Approve
-                          </Button>
-                          <Button
-                            variant="danger"
-                            size="sm"
-                            onClick={() => handleDeny(booking.id)}
-                          >
-                            Deny
-                          </Button>
-                        </div>
+                        {canApproveBookings ? (
+                          <div className="flex justify-end gap-2">
+                            <Button
+                              variant="success"
+                              size="sm"
+                              onClick={() => handleApprove(booking.id)}
+                            >
+                              Approve
+                            </Button>
+                            <Button
+                              variant="danger"
+                              size="sm"
+                              onClick={() => handleDeny(booking.id)}
+                            >
+                              Deny
+                            </Button>
+                          </div>
+                        ) : (
+                          <span className="text-sm text-gray-400">View only</span>
+                        )}
                       </td>
                     </tr>
                   ))}

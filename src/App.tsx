@@ -55,20 +55,60 @@ function App() {
           <Route path="/profile" element={<ProfilePage />} />
         </Route>
 
-        {/* Admin Routes */}
+        {/* Admin Routes - Dashboard and Reports accessible to any admin */}
         <Route
           element={
-            <ProtectedRoute requiredRole="admin">
+            <ProtectedRoute requireAnyAdmin>
               <Layout isAdmin />
             </ProtectedRoute>
           }
         >
           <Route path="/admin" element={<AdminDashboardPage />} />
-          <Route path="/admin/menu" element={<MenuManagementPage />} />
-          <Route path="/admin/bookings" element={<BookingManagementPage />} />
-          <Route path="/admin/users" element={<UserManagementPage />} />
-          <Route path="/admin/payments" element={<PaymentsPage />} />
           <Route path="/admin/reports" element={<ReportsPage />} />
+        </Route>
+
+        {/* Menu Management - Food Editors and Main Admins */}
+        <Route
+          element={
+            <ProtectedRoute requireMealManagement>
+              <Layout isAdmin />
+            </ProtectedRoute>
+          }
+        >
+          <Route path="/admin/menu" element={<MenuManagementPage />} />
+        </Route>
+
+        {/* Booking Management - Main Admins and Admins only */}
+        <Route
+          element={
+            <ProtectedRoute requireBookingManagement>
+              <Layout isAdmin />
+            </ProtectedRoute>
+          }
+        >
+          <Route path="/admin/bookings" element={<BookingManagementPage />} />
+        </Route>
+
+        {/* User Management - Main Admins and Admins only */}
+        <Route
+          element={
+            <ProtectedRoute requireUserManagement>
+              <Layout isAdmin />
+            </ProtectedRoute>
+          }
+        >
+          <Route path="/admin/users" element={<UserManagementPage />} />
+        </Route>
+
+        {/* Payments - Finance Editors and Main Admins */}
+        <Route
+          element={
+            <ProtectedRoute requireFinanceManagement>
+              <Layout isAdmin />
+            </ProtectedRoute>
+          }
+        >
+          <Route path="/admin/payments" element={<PaymentsPage />} />
         </Route>
 
         {/* Redirects */}

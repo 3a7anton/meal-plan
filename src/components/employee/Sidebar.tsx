@@ -16,6 +16,7 @@ import { useAuthStore, useUIStore } from '../../store'
 import { LanguageSelector } from '../ui/LanguageSelector'
 import { useTranslation } from '../../hooks/useTranslation'
 import { cn } from '../../lib/utils'
+import { canManageMeals, canManageFinance, canManageUsers, canViewReports, canViewAllBookings } from '../../lib/roles'
 
 interface SidebarProps {
   isAdmin?: boolean
@@ -23,7 +24,7 @@ interface SidebarProps {
 
 export function Sidebar({ isAdmin = false }: SidebarProps) {
   const [isCollapsed, setIsCollapsed] = useState(false)
-  const { signOut } = useAuthStore()
+  const { signOut, profile } = useAuthStore()
   const { isMobileMenuOpen, closeMobileMenu } = useUIStore()
   const { t } = useTranslation()
   const navigate = useNavigate()
@@ -48,14 +49,34 @@ export function Sidebar({ isAdmin = false }: SidebarProps) {
     { to: '/profile', icon: UserCircle, label: t('profile') },
   ]
 
-  const adminLinks = [
-    { to: '/admin', icon: LayoutDashboard, label: t('dashboard') },
-    { to: '/admin/menu', icon: UtensilsCrossed, label: t('menu') },
-    { to: '/admin/bookings', icon: CalendarDays, label: t('bookings') },
-    { to: '/admin/users', icon: Users, label: t('users') },
-    { to: '/admin/payments', icon: CreditCard, label: t('payments') },
-    { to: '/admin/reports', icon: FileBarChart, label: t('reports') },
-  ]
+  // Build admin links based on role permissions
+  const getAdminLinks = () => {
+    const links = [{ to: '/admin', icon: LayoutDashboard, label: t('dashboard') }]
+    
+    if (canManageMeals(profile)) {
+      links.push({ to: '/admin/menu', icon: UtensilsCrossed, label: t('menu') })
+    }
+    
+    if (canViewAllBookings(profile)) {
+      links.push({ to: '/admin/bookings', icon: CalendarDays, label: t('bookings') })
+    }
+    
+    if (canManageUsers(profile)) {
+      links.push({ to: '/admin/users', icon: Users, label: t('users') })
+    }
+    
+    if (canManageFinance(profile)) {
+      links.push({ to: '/admin/payments', icon: CreditCard, label: t('payments') })
+    }
+    
+    if (canViewReports(profile)) {
+      links.push({ to: '/admin/reports', icon: FileBarChart, label: t('reports') })
+    }
+    
+    return links
+  }
+
+  const adminLinks = getAdminLinks()
 
   const links = isAdmin ? adminLinks : employeeLinks
 

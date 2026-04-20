@@ -13,9 +13,12 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey)
 const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'http://localhost:5173').split(',')
 
 // Columns that can be set/updated on meals
-const ALLOWED_MEAL_FIELDS = ['name', 'description', 'meal_type', 'dietary_tags', 'image_url', 'is_active'] as const
+const ALLOWED_MEAL_FIELDS = ['name', 'description', 'meal_type', 'dietary_tags', 'image_url', 'is_active', 'price'] as const
 
-async function verifyAdmin(token: string) {
+type UserRole = 'employee' | 'admin' | 'food_editor' | 'finance_editor'
+
+// Verify token and return user with role
+async function verifyTokenWithRole(token: string): Promise<{ user: any, role: UserRole } | null> {
   const { data: { user }, error } = await supabase.auth.getUser(token)
   if (error || !user) return null
 
@@ -26,12 +29,16 @@ async function verifyAdmin(token: string) {
     .single()
 
   if (profileError) {
-    console.error('Profile query error in verifyAdmin:', profileError)
-    throw new Error('Failed to verify admin role')
+    console.error('Profile query error in verifyTokenWithRole:', profileError)
+    return null
   }
 
-  if (profile?.role !== 'admin') return null
-  return user
+  return { user, role: profile?.role as UserRole }
+}
+
+// Check if role can manage meals (admin or food_editor)
+function canManageMeals(role: UserRole): boolean {
+  return ['admin', 'food_editor'].includes(role)
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -56,10 +63,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const token = authHeader.split('Bearer ')[1]
 
   try {
-    // Verify user is admin
-    const user = await verifyAdmin(token)
-    if (!user) {
-      return res.status(403).json({ error: 'Forbidden: Admin access required' })
+    // Verify user has meal management permission
+    const auth = await verifyTokenWithRole(token)
+    if (!auth || !canManageMeals(auth.role)) {
+      return res.status(403).json({ error: 'Forbidden: Meal management access required' })
     }
 
     // GET - List all meals (including inactive)

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Search, Shield, ShieldOff, UserX, UserCheck, Users, DollarSign, AlertTriangle } from 'lucide-react'
+import { Search, Shield, ShieldOff, UserX, UserCheck, Users, DollarSign, AlertTriangle, Crown, UtensilsCrossed, Wallet } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, Button, Input, Select, Badge, CardSkeleton, TableSkeleton } from '../../components/ui'
 import { ConfirmDialog } from '../../components/ui/Modal'
 import { supabase } from '../../lib/supabaseClient'
@@ -20,7 +20,7 @@ export function UserManagementPage() {
   const [roleFilter, setRoleFilter] = useState<string>('all')
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [selectedUser, setSelectedUser] = useState<Profile | null>(null)
-  const [actionType, setActionType] = useState<'promote' | 'demote' | 'deactivate' | 'activate' | null>(null)
+  const [actionType, setActionType] = useState<'promote' | 'promote_food' | 'promote_finance' | 'demote' | 'deactivate' | 'activate' | null>(null)
   const [isProcessing, setIsProcessing] = useState(false)
 
   const currentMonth = format(new Date(), 'yyyy-MM')
@@ -82,6 +82,12 @@ export function UserManagementPage() {
         case 'promote':
           updateData = { role: 'admin' }
           break
+        case 'promote_food':
+          updateData = { role: 'food_editor' }
+          break
+        case 'promote_finance':
+          updateData = { role: 'finance_editor' }
+          break
         case 'demote':
           updateData = { role: 'employee' }
           break
@@ -117,7 +123,11 @@ export function UserManagementPage() {
 
     switch (actionType) {
       case 'promote':
-        return `Are you sure you want to promote ${name} to admin? They will have full access to manage the system.`
+        return `Are you sure you want to promote ${name} to Admin? They will have full access to manage the system.`
+      case 'promote_food':
+        return `Are you sure you want to promote ${name} to Food Editor? They will be able to manage meals and schedules.`
+      case 'promote_finance':
+        return `Are you sure you want to promote ${name} to Finance Editor? They will be able to manage payments and pricing.`
       case 'demote':
         return `Are you sure you want to demote ${name} to employee? They will lose admin privileges.`
       case 'deactivate':
@@ -135,10 +145,51 @@ export function UserManagementPage() {
   const getActionTitle = () => {
     switch (actionType) {
       case 'promote': return 'Promote to Admin'
+      case 'promote_food': return 'Promote to Food Editor'
+      case 'promote_finance': return 'Promote to Finance Editor'
       case 'demote': return 'Demote to Employee'
       case 'deactivate': return 'Deactivate Account'
       case 'activate': return 'Approve & Activate Account'
       default: return ''
+    }
+  }
+
+  const getRoleBadge = (role: string) => {
+    switch (role) {
+      case 'admin':
+        return (
+          <Badge variant="warning">
+            <span className="flex items-center gap-1">
+              <Crown className="h-3 w-3" /> Admin
+            </span>
+          </Badge>
+        )
+      case 'food_editor':
+        return (
+          <Badge variant="success">
+            <span className="flex items-center gap-1">
+              <UtensilsCrossed className="h-3 w-3" /> Food Editor
+            </span>
+          </Badge>
+        )
+      case 'finance_editor':
+        return (
+          <Badge variant="primary">
+            <span className="flex items-center gap-1">
+              <Wallet className="h-3 w-3" /> Finance Editor
+            </span>
+          </Badge>
+        )
+      case 'admin':
+        return (
+          <Badge variant="warning">
+            <span className="flex items-center gap-1">
+              <Shield className="h-3 w-3" /> Admin
+            </span>
+          </Badge>
+        )
+      default:
+        return <Badge variant="default">Employee</Badge>
     }
   }
 
@@ -241,7 +292,7 @@ export function UserManagementPage() {
             </div>
             <div>
               <p className="text-2xl font-bold text-gray-900">
-                {users.filter((u) => u.role === 'admin').length}
+                {users.filter((u) => ['admin', 'food_editor', 'finance_editor'].includes(u.role)).length}
               </p>
               <p className="text-sm text-gray-500">Admins</p>
             </div>
@@ -291,11 +342,13 @@ export function UserManagementPage() {
               options={[
                 { value: 'all', label: 'All Roles' },
                 { value: 'admin', label: 'Admin' },
+                { value: 'food_editor', label: 'Food Editor' },
+                { value: 'finance_editor', label: 'Finance Editor' },
                 { value: 'employee', label: 'Employee' },
               ]}
               value={roleFilter}
               onChange={(e) => setRoleFilter(e.target.value)}
-              className="w-40"
+              className="w-48"
             />
             <Select
               options={[
@@ -347,15 +400,7 @@ export function UserManagementPage() {
                       </td>
                       <td className="px-4 py-3 text-gray-600">{user.department || '-'}</td>
                       <td className="px-4 py-3">
-                        <Badge variant={user.role === 'admin' ? 'warning' : 'default'}>
-                          {user.role === 'admin' ? (
-                            <span className="flex items-center gap-1">
-                              <Shield className="h-3 w-3" /> Admin
-                            </span>
-                          ) : (
-                            'Employee'
-                          )}
-                        </Badge>
+                        {getRoleBadge(user.role)}
                       </td>
                       <td className="px-4 py-3">
                         {user.is_active ? (
@@ -380,17 +425,37 @@ export function UserManagementPage() {
                       <td className="px-4 py-3">
                         <div className="flex justify-end gap-2">
                           {user.role === 'employee' ? (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => { setSelectedUser(user); setActionType('promote') }}
-                            >
-                              <Shield className="h-4 w-4 text-purple-600" />
-                            </Button>
+                            <>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                title="Promote to Admin"
+                                onClick={() => { setSelectedUser(user); setActionType('promote') }}
+                              >
+                                <Crown className="h-4 w-4 text-amber-600" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                title="Promote to Food Editor"
+                                onClick={() => { setSelectedUser(user); setActionType('promote_food') }}
+                              >
+                                <UtensilsCrossed className="h-4 w-4 text-green-600" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                title="Promote to Finance Editor"
+                                onClick={() => { setSelectedUser(user); setActionType('promote_finance') }}
+                              >
+                                <Wallet className="h-4 w-4 text-blue-600" />
+                              </Button>
+                            </>
                           ) : (
                             <Button
                               variant="ghost"
                               size="sm"
+                              title="Demote to Employee"
                               onClick={() => { setSelectedUser(user); setActionType('demote') }}
                             >
                               <ShieldOff className="h-4 w-4 text-gray-600" />

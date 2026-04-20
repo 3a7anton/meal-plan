@@ -17,7 +17,7 @@ export interface Database {
           phone: string | null
           avatar_url: string | null
           department: string | null
-          role: 'employee' | 'admin'
+          role: 'employee' | 'admin' | 'food_editor' | 'finance_editor'
           dietary_preferences: string[] | null
           is_active: boolean
           created_at: string
@@ -29,7 +29,7 @@ export interface Database {
           phone?: string | null
           avatar_url?: string | null
           department?: string | null
-          role?: 'employee' | 'admin'
+          role?: 'employee' | 'admin' | 'food_editor' | 'finance_editor'
           dietary_preferences?: string[] | null
           is_active?: boolean
           created_at?: string
@@ -41,7 +41,7 @@ export interface Database {
           phone?: string | null
           avatar_url?: string | null
           department?: string | null
-          role?: 'employee' | 'admin'
+          role?: 'employee' | 'admin' | 'food_editor' | 'finance_editor'
           dietary_preferences?: string[] | null
           is_active?: boolean
           created_at?: string
@@ -292,7 +292,7 @@ export interface Database {
       booking_status: 'pending' | 'confirmed' | 'denied' | 'cancelled'
       meal_type: 'breakfast' | 'lunch'
       notification_type: 'booking_confirmed' | 'booking_denied' | 'conflict' | 'reminder' | 'cancelled'
-      user_role: 'employee' | 'admin'
+      user_role: 'employee' | 'admin' | 'food_editor' | 'finance_editor'
     }
     CompositeTypes: {
       [_ in never]: never

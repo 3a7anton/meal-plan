@@ -46,3 +46,55 @@ export function successResponse(data: unknown, status: number = 200) {
     headers: { 'Content-Type': 'application/json', ...corsHeaders() },
   })
 }
+
+// Role-based verification types
+export type UserRole = 'employee' | 'admin' | 'food_editor' | 'finance_editor'
+
+// Verify token and return user with role
+export async function verifyTokenWithRole(token: string) {
+  const { data: { user }, error } = await supabaseAdmin.auth.getUser(token)
+  if (error || !user) return null
+
+  const { data: profile, error: profileError } = await supabaseAdmin
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single()
+
+  if (profileError) {
+    console.error('Profile query error:', profileError)
+    return null
+  }
+
+  return { user, role: profile?.role as UserRole }
+}
+
+// Check if role is any type of admin
+export function isAdmin(role: UserRole): boolean {
+  return ['admin', 'food_editor', 'finance_editor'].includes(role)
+}
+
+// Check if role is main admin
+export function isMainAdmin(role: UserRole): boolean {
+  return role === 'admin'
+}
+
+// Check if role can manage meals
+export function canManageMeals(role: UserRole): boolean {
+  return ['admin', 'food_editor'].includes(role)
+}
+
+// Check if role can manage finance/payments
+export function canManageFinance(role: UserRole): boolean {
+  return ['admin', 'finance_editor'].includes(role)
+}
+
+// Check if role can manage users and assign roles (admin only)
+export function canManageUsers(role: UserRole): boolean {
+  return role === 'admin'
+}
+
+// Check if role can manage bookings (admin only)
+export function canManageBookings(role: UserRole): boolean {
+  return role === 'admin'
+}

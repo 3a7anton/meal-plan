@@ -12,7 +12,9 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
 const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'http://localhost:5173').split(',')
 
-async function verifyAdmin(token: string) {
+type UserRole = 'employee' | 'admin' | 'food_editor' | 'finance_editor'
+
+async function verifyTokenWithRole(token: string): Promise<{ user: any, role: UserRole } | null> {
   const { data: { user }, error } = await supabase.auth.getUser(token)
   if (error || !user) return null
 
@@ -23,12 +25,15 @@ async function verifyAdmin(token: string) {
     .single()
 
   if (profileError) {
-    console.error('Profile query error in verifyAdmin:', profileError)
-    throw new Error('Failed to verify admin role')
+    console.error('Profile query error:', profileError)
+    return null
   }
 
-  if (profile?.role !== 'admin') return null
-  return user
+  return { user, role: profile?.role as UserRole }
+}
+
+function canManageUsers(role: UserRole): boolean {
+  return role === 'admin'
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -57,10 +62,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const token = authHeader.split('Bearer ')[1]
 
   try {
-    // Verify user is admin
-    const user = await verifyAdmin(token)
-    if (!user) {
-      return res.status(403).json({ error: 'Forbidden: Admin access required' })
+    // Verify user can manage users
+    const auth = await verifyTokenWithRole(token)
+    if (!auth || !canManageUsers(auth.role)) {
+      return res.status(403).json({ error: 'Forbidden: User management access required' })
     }
 
     // Parse pagination params

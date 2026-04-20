@@ -1,13 +1,34 @@
 import { Navigate, useLocation } from 'react-router-dom'
 import { useAuthStore } from '../store'
 import { Loading } from './ui'
+import { isAdmin, canManageMeals, canManageFinance, canManageUsers, canManageBookings } from '../lib/roles'
 
 interface ProtectedRouteProps {
   children: React.ReactNode
   requiredRole?: 'admin' | 'employee'
+  // New granular permission checks
+  requireAnyAdmin?: boolean
+  requireMainAdmin?: boolean
+  requireFoodEditor?: boolean
+  requireFinanceEditor?: boolean
+  requireMealManagement?: boolean
+  requireFinanceManagement?: boolean
+  requireUserManagement?: boolean
+  requireBookingManagement?: boolean
 }
 
-export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) {
+export function ProtectedRoute({ 
+  children, 
+  requiredRole,
+  requireAnyAdmin,
+  requireMainAdmin,
+  requireFoodEditor,
+  requireFinanceEditor,
+  requireMealManagement,
+  requireFinanceManagement,
+  requireUserManagement,
+  requireBookingManagement,
+}: ProtectedRouteProps) {
   const location = useLocation()
   const { user, profile, isInitialized } = useAuthStore()
 
@@ -40,21 +61,69 @@ export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) 
       created_at: new Date().toISOString(),
     }
 
-    // Check role if required
+    // Check role if required (legacy check)
     if (requiredRole && fallbackProfile.role !== requiredRole) {
+      // If admin is required but fallback is employee, redirect
+      if (requiredRole === 'admin') {
+        return <Navigate to="/dashboard" replace />
+      }
+    }
+
+    // Check new granular permissions - fallback profile is employee, so only allow employee routes
+    if (requireAnyAdmin || requireMainAdmin || requireFoodEditor || requireFinanceEditor ||
+        requireMealManagement || requireFinanceManagement || requireUserManagement || requireBookingManagement) {
       return <Navigate to="/dashboard" replace />
     }
 
     return <>{children}</>
   }
 
-  // Check role if required
+  // Legacy role check (for backward compatibility)
   if (requiredRole && profile!.role !== requiredRole) {
     // Admins trying to access employee routes - allow
-    if (requiredRole === 'employee' && profile!.role === 'admin') {
+    if (requiredRole === 'employee' && isAdmin(profile)) {
       return <>{children}</>
     }
     // Employees trying to access admin routes - redirect to dashboard
+    if (requiredRole === 'admin' && !isAdmin(profile)) {
+      return <Navigate to="/dashboard" replace />
+    }
+    // If admin role specifically required and user is admin (any type), allow
+    if (requiredRole === 'admin' && isAdmin(profile)) {
+      return <>{children}</>
+    }
+  }
+
+  // New granular permission checks
+  if (requireAnyAdmin && !isAdmin(profile)) {
+    return <Navigate to="/dashboard" replace />
+  }
+
+  if (requireMainAdmin && profile!.role !== 'admin') {
+    return <Navigate to="/dashboard" replace />
+  }
+
+  if (requireFoodEditor && !['food_editor', 'admin'].includes(profile!.role)) {
+    return <Navigate to="/dashboard" replace />
+  }
+
+  if (requireFinanceEditor && !['finance_editor', 'admin'].includes(profile!.role)) {
+    return <Navigate to="/dashboard" replace />
+  }
+
+  if (requireMealManagement && !canManageMeals(profile)) {
+    return <Navigate to="/dashboard" replace />
+  }
+
+  if (requireFinanceManagement && !canManageFinance(profile)) {
+    return <Navigate to="/dashboard" replace />
+  }
+
+  if (requireUserManagement && !canManageUsers(profile)) {
+    return <Navigate to="/dashboard" replace />
+  }
+
+  if (requireBookingManagement && !canManageBookings(profile)) {
     return <Navigate to="/dashboard" replace />
   }
 

@@ -10,18 +10,28 @@ if (!supabaseUrl || !supabaseServiceKey) {
 
 const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
-async function verifyAdmin(token: string) {
+type UserRole = 'employee' | 'admin' | 'food_editor' | 'finance_editor'
+
+async function verifyTokenWithRole(token: string): Promise<{ user: any, role: UserRole } | null> {
   const { data: { user }, error } = await supabase.auth.getUser(token)
   if (error || !user) return null
 
-  const { data: profile } = await supabase
+  const { data: profile, error: profileError } = await supabase
     .from('profiles')
     .select('role')
     .eq('id', user.id)
     .single()
 
-  if (profile?.role !== 'admin') return null
-  return user
+  if (profileError) {
+    console.error('Profile query error:', profileError)
+    return null
+  }
+
+  return { user, role: profile?.role as UserRole }
+}
+
+function canManageBookings(role: UserRole): boolean {
+  return role === 'admin'
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -49,10 +59,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const token = authHeader.split('Bearer ')[1]
 
   try {
-    // Verify user is admin
-    const user = await verifyAdmin(token)
-    if (!user) {
-      return res.status(403).json({ error: 'Forbidden: Admin access required' })
+    // Verify user can manage bookings
+    const auth = await verifyTokenWithRole(token)
+    if (!auth || !canManageBookings(auth.role)) {
+      return res.status(403).json({ error: 'Forbidden: Booking management access required' })
     }
 
     const { booking_id, reason } = req.body

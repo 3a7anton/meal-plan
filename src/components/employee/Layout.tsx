@@ -2,14 +2,15 @@ import { Outlet } from 'react-router-dom'
 import { Sidebar } from './Sidebar'
 import { Navbar } from './Navbar'
 import { useAuthStore } from '../../store'
+import { isAdmin } from '../../lib/roles'
 
 interface LayoutProps {
   isAdmin?: boolean
 }
 
-export function Layout({ isAdmin = false }: LayoutProps) {
+export function Layout({ isAdmin: isAdminRoute = false }: LayoutProps) {
   const { profile } = useAuthStore()
-  const shouldShowAdmin = isAdmin && profile?.role === 'admin'
+  const shouldShowAdmin = isAdminRoute && isAdmin(profile)
 
   return (
     <div className="min-h-screen bg-gray-50">
