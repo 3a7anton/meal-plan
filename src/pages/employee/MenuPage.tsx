@@ -5,7 +5,7 @@ import { useAuthStore, useMenuStore, useBookingStore } from '../../store'
 import { Card, Button, Select, CardSkeleton } from '../../components/ui'
 import { useTranslation } from '../../hooks/useTranslation'
 import { MealCard } from '../../components/employee'
-import { ConfirmDialog, Modal } from '../../components/ui/Modal'
+import { Modal } from '../../components/ui/Modal'
 import toast from 'react-hot-toast'
 
 export function MenuPage() {
