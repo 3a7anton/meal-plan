@@ -11,6 +11,9 @@ ALTER TABLE bookings DROP CONSTRAINT IF EXISTS bookings_user_id_menu_schedule_id
 -- Create index for faster quantity sum queries
 CREATE INDEX IF NOT EXISTS idx_bookings_quantity ON bookings(quantity);
 
+-- Drop old function signature to avoid ambiguity
+DROP FUNCTION IF EXISTS create_booking_atomic(uuid, uuid, text);
+
 -- Update the atomic booking function to support quantity
 CREATE OR REPLACE FUNCTION create_booking_atomic(
   p_user_id uuid,
