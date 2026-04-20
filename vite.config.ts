@@ -81,8 +81,41 @@ export default defineConfig({
               const endDate = queryParams.get('endDate')
               const status = queryParams.get('status')
               
-              // Build query
-              let query = supabase
+              // Get menu schedule IDs for date filtering first
+              let menuScheduleIds: string[] | null = null
+              if (startDate || endDate) {
+                let scheduleQuery = supabase
+                  .from('menu_schedules')
+                  .select('id')
+                  
+                if (startDate) {
+                  scheduleQuery = scheduleQuery.gte('scheduled_date', startDate)
+                }
+                if (endDate) {
+                  scheduleQuery = scheduleQuery.lte('scheduled_date', endDate)
+                }
+                
+                const { data: schedules, error: scheduleError } = await scheduleQuery
+                if (scheduleError) {
+                  console.error('Error fetching schedules:', scheduleError)
+                }
+                menuScheduleIds = schedules?.map(s => s.id) || []
+                
+                if (menuScheduleIds.length === 0) {
+                  // No schedules match the date range
+                  res.statusCode = 200
+                  res.setHeader('Content-Type', 'application/json')
+                  res.end(JSON.stringify({ 
+                    success: true, 
+                    data: [],
+                    isAdmin 
+                  }))
+                  return
+                }
+              }
+              
+              // Build the final query with joins
+              let finalQuery = supabase
                 .from('bookings')
                 .select(`
                   id,
@@ -101,24 +134,20 @@ export default defineConfig({
                   )
                 `)
               
-              // Filter by user if not admin
+              // Apply same filters
               if (!isAdmin) {
-                query = query.eq('user_id', user.id)
-              }
-              
-              if (startDate) {
-                query = query.gte('menu_schedule.scheduled_date', startDate)
-              }
-              if (endDate) {
-                query = query.lte('menu_schedule.scheduled_date', endDate)
+                finalQuery = finalQuery.eq('user_id', user.id)
               }
               if (status && status !== 'all') {
-                query = query.eq('status', status)
+                finalQuery = finalQuery.eq('status', status)
+              }
+              if (menuScheduleIds && menuScheduleIds.length > 0) {
+                finalQuery = finalQuery.in('menu_schedule_id', menuScheduleIds)
               }
               
-              query = query.order('booked_at', { ascending: false })
+              finalQuery = finalQuery.order('booked_at', { ascending: false })
               
-              const { data: bookings, error } = await query
+              const { data: bookings, error } = await finalQuery
               
               if (error) {
                 console.error('Error fetching bookings:', error)
