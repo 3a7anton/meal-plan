@@ -1,20 +1,33 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { UtensilsCrossed, CalendarDays, Clock, ArrowRight, DollarSign, AlertCircle } from 'lucide-react'
-import { useAuthStore, useBookingStore, useMenuStore } from '../../store'
+import { UtensilsCrossed, CalendarDays, Clock, ArrowRight, DollarSign, AlertCircle, TrendingUp, Wallet } from 'lucide-react'
+import { useAuthStore, useBookingStore, useMenuStore, useSettingsStore } from '../../store'
 import { Card, CardContent, CardHeader, CardTitle, Button, CardSkeleton } from '../../components/ui'
 import { useTranslation } from '../../hooks/useTranslation'
 import { BookingCard, MealCard } from '../../components/employee'
-import { format } from 'date-fns'
+import { format, subMonths } from 'date-fns'
 import { supabase } from '../../lib/supabaseClient'
+import type { UserBalance } from '../../types'
 
 export function DashboardPage() {
   const { user, profile } = useAuthStore()
   const { bookings, fetchUserBookings, isLoading: bookingsLoading } = useBookingStore()
   const { schedules, fetchSchedules, isLoading: menuLoading } = useMenuStore()
+  const { advancePaymentEnabled, fetchSettings } = useSettingsStore()
   const { t } = useTranslation()
   const [dueAmount, setDueAmount] = useState<number | null>(null)
   const [isLoadingDue, setIsLoadingDue] = useState(true)
+  const [userBalance, setUserBalance] = useState<UserBalance | null>(null)
+  const [isLoadingBalance, setIsLoadingBalance] = useState(true)
+  const [adjustedDueAmount, setAdjustedDueAmount] = useState<number | null>(null)
+  const [costAnalysis, setCostAnalysis] = useState({
+    thisMonth: 0,
+    lastMonth: 0,
+    averageMealCost: 0,
+    totalMeals: 0,
+    totalSpent: 0,
+  })
+  const [isLoadingCost, setIsLoadingCost] = useState(true)
 
   const today = format(new Date(), 'yyyy-MM-dd')
   const currentMonth = format(new Date(), 'yyyy-MM')
@@ -23,9 +36,11 @@ export function DashboardPage() {
     if (user) {
       fetchUserBookings(user.id, true) // Force refresh to get latest bookings
       fetchDueAmount(user.id)
+      fetchCostAnalysis(user.id)
     }
+    fetchSettings()
     fetchSchedules(today)
-  }, [user, fetchUserBookings, fetchSchedules, today])
+  }, [user, fetchUserBookings, fetchSchedules, fetchSettings, today])
 
   const fetchDueAmount = async (userId: string) => {
     setIsLoadingDue(true)
@@ -88,6 +103,127 @@ export function DashboardPage() {
       console.error('Error fetching due amount:', error)
     } finally {
       setIsLoadingDue(false)
+    }
+  }
+
+  const fetchCostAnalysis = async (userId: string) => {
+    setIsLoadingCost(true)
+    setIsLoadingBalance(true)
+    try {
+      // Get this month's confirmed bookings
+      const startOfCurrentMonth = `${currentMonth}-01`
+      const { data: thisMonthBookings, error: thisMonthError } = await supabase
+        .from('bookings')
+        .select(`
+          *,
+          menu_schedule:menu_schedules!inner (
+            *,
+            meal:meals!inner (*)
+          )
+        `)
+        .eq('user_id', userId)
+        .eq('status', 'confirmed')
+        .gte('menu_schedule.scheduled_date', startOfCurrentMonth)
+
+      if (thisMonthError) throw thisMonthError
+
+      // Get last month's confirmed bookings
+      const lastMonth = format(subMonths(new Date(), 1), 'yyyy-MM')
+      const startOfLastMonth = `${lastMonth}-01`
+      const endOfLastMonth = format(new Date(new Date().getFullYear(), new Date().getMonth(), 0), 'yyyy-MM-dd')
+      
+      const { data: lastMonthBookings, error: lastMonthError } = await supabase
+        .from('bookings')
+        .select(`
+          *,
+          menu_schedule:menu_schedules!inner (
+            *,
+            meal:meals!inner (*)
+          )
+        `)
+        .eq('user_id', userId)
+        .eq('status', 'confirmed')
+        .gte('menu_schedule.scheduled_date', startOfLastMonth)
+        .lte('menu_schedule.scheduled_date', endOfLastMonth)
+
+      if (lastMonthError) throw lastMonthError
+
+      // Calculate costs
+      const calculateCost = (bookingData: any[]) => {
+        return (bookingData || []).reduce((sum: number, booking: any) => {
+          const schedulePrice = booking.menu_schedule?.price
+          const mealPrice = booking.menu_schedule?.meal?.price || 0
+          const price = schedulePrice ?? mealPrice
+          const quantity = booking.quantity || 1
+          return sum + (price * quantity)
+        }, 0)
+      }
+
+      const thisMonthCost = calculateCost(thisMonthBookings)
+      const lastMonthCost = calculateCost(lastMonthBookings)
+      
+      // Get all-time confirmed bookings
+      const { data: allBookings, error: allError } = await supabase
+        .from('bookings')
+        .select(`
+          *,
+          menu_schedule:menu_schedules!inner (
+            *,
+            meal:meals!inner (*)
+          )
+        `)
+        .eq('user_id', userId)
+        .eq('status', 'confirmed')
+
+      if (allError) throw allError
+
+      const totalSpent = calculateCost(allBookings)
+      const totalMeals = (allBookings || []).reduce((sum: number, b: any) => sum + (b.quantity || 1), 0)
+      const averageMealCost = totalMeals > 0 ? totalSpent / totalMeals : 0
+
+      setCostAnalysis({
+        thisMonth: thisMonthCost,
+        lastMonth: lastMonthCost,
+        averageMealCost,
+        totalMeals,
+        totalSpent,
+      })
+
+      // Fetch user balance if advance payment is enabled
+      if (advancePaymentEnabled) {
+        const { data: balanceData, error: balanceError } = await supabase
+          .from('user_balances')
+          .select('*')
+          .eq('user_id', userId)
+          .maybeSingle()
+
+        if (balanceError && balanceError.code !== 'PGRST116') throw balanceError
+
+        const typedBalanceData = balanceData as UserBalance | null
+        setUserBalance(typedBalanceData)
+
+        // Calculate adjusted due amount
+        if (dueAmount !== null && typedBalanceData) {
+          const availableBalance = typedBalanceData.balance
+          if (availableBalance > 0) {
+            // Balance can offset some or all of the due amount
+            const remainingDue = Math.max(0, dueAmount - availableBalance)
+            setAdjustedDueAmount(remainingDue)
+          } else {
+            // Negative balance means user owes more
+            setAdjustedDueAmount(dueAmount + Math.abs(availableBalance))
+          }
+        } else {
+          setAdjustedDueAmount(dueAmount)
+        }
+      } else {
+        setAdjustedDueAmount(dueAmount)
+      }
+    } catch (error) {
+      console.error('Error fetching cost analysis:', error)
+    } finally {
+      setIsLoadingCost(false)
+      setIsLoadingBalance(false)
     }
   }
 
@@ -230,6 +366,116 @@ export function DashboardPage() {
             </div>
           </CardContent>
         </Card>
+      </div>
+
+      {/* Cost Analysis & Balance Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {/* Cost Analysis Card */}
+        <Card className="lg:col-span-2">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <TrendingUp className="h-5 w-5 text-primary-600" />
+              Cost Analysis
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="text-center p-3 bg-gray-50 rounded-lg">
+                <p className="text-sm text-gray-500 mb-1">This Month</p>
+                <p className="text-xl font-bold text-gray-900">
+                  {isLoadingCost ? '...' : `৳${costAnalysis.thisMonth.toFixed(0)}`}
+                </p>
+              </div>
+              <div className="text-center p-3 bg-gray-50 rounded-lg">
+                <p className="text-sm text-gray-500 mb-1">Last Month</p>
+                <p className="text-xl font-bold text-gray-600">
+                  {isLoadingCost ? '...' : `৳${costAnalysis.lastMonth.toFixed(0)}`}
+                </p>
+              </div>
+              <div className="text-center p-3 bg-gray-50 rounded-lg">
+                <p className="text-sm text-gray-500 mb-1">Avg Meal Cost</p>
+                <p className="text-xl font-bold text-blue-600">
+                  {isLoadingCost ? '...' : `৳${costAnalysis.averageMealCost.toFixed(0)}`}
+                </p>
+              </div>
+              <div className="text-center p-3 bg-gray-50 rounded-lg">
+                <p className="text-sm text-gray-500 mb-1">Total Meals</p>
+                <p className="text-xl font-bold text-green-600">
+                  {isLoadingCost ? '...' : costAnalysis.totalMeals}
+                </p>
+              </div>
+            </div>
+            <div className="mt-4 pt-4 border-t border-gray-100">
+              <div className="flex items-center justify-between">
+                <span className="text-gray-600">Total Spent (All Time)</span>
+                <span className="text-xl font-bold text-primary-700">
+                  {isLoadingCost ? '...' : `৳${costAnalysis.totalSpent.toFixed(0)}`}
+                </span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Balance Card - Only show if advance payment is enabled */}
+        {advancePaymentEnabled && (
+          <Card className={userBalance && userBalance.balance >= 0 ? 'border-green-200' : 'border-red-200'}>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Wallet className={`h-5 w-5 ${userBalance && userBalance.balance >= 0 ? 'text-green-600' : 'text-red-600'}`} />
+                My Balance
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="text-center p-4 bg-gray-50 rounded-lg">
+                <p className="text-sm text-gray-500 mb-1">Available Balance</p>
+                <p className={`text-3xl font-bold ${userBalance && userBalance.balance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  {isLoadingBalance ? '...' : userBalance ? `৳${userBalance.balance.toFixed(0)}` : '৳0'}
+                </p>
+                {userBalance && userBalance.balance < 0 && (
+                  <p className="text-xs text-red-500 mt-1">You have an outstanding balance</p>
+                )}
+              </div>
+              
+              {/* Adjusted Due Amount */}
+              {adjustedDueAmount !== null && adjustedDueAmount > 0 && (
+                <div className="p-3 bg-red-50 rounded-lg">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-red-600">Adjusted Due</span>
+                    <span className="font-bold text-red-700">৳{adjustedDueAmount.toFixed(0)}</span>
+                  </div>
+                  {userBalance && userBalance.balance > 0 && dueAmount && dueAmount > 0 && (
+                    <p className="text-xs text-gray-500 mt-1">
+                      Original due: ৳{dueAmount.toFixed(0)} - Balance used: ৳{Math.min(userBalance.balance, dueAmount).toFixed(0)}
+                    </p>
+                  )}
+                </div>
+              )}
+              
+              {adjustedDueAmount !== null && adjustedDueAmount === 0 && userBalance && userBalance.balance > 0 && (
+                <div className="p-3 bg-green-50 rounded-lg">
+                  <p className="text-sm text-green-700 text-center">
+                    Fully covered by your balance!
+                  </p>
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 gap-2 text-xs text-gray-500">
+                <div>
+                  <span className="block text-gray-400">Total Deposits</span>
+                  <span className="font-medium text-gray-700">
+                    {userBalance ? `৳${userBalance.total_deposits.toFixed(0)}` : '৳0'}
+                  </span>
+                </div>
+                <div>
+                  <span className="block text-gray-400">Total Consumed</span>
+                  <span className="font-medium text-gray-700">
+                    {userBalance ? `৳${userBalance.total_consumed.toFixed(0)}` : '৳0'}
+                  </span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       {/* Main Content Grid */}

@@ -11,10 +11,13 @@ import {
   Pie,
   Cell,
   Legend,
+  LineChart,
+  Line,
 } from 'recharts'
 import { Card, CardContent, CardHeader, CardTitle, Loading, Select } from '../../components/ui'
 import { supabase } from '../../lib/supabaseClient'
-import { format, subDays } from 'date-fns'
+import { format, subDays, subMonths } from 'date-fns'
+import type { PaymentWithProfile } from '../../types'
 
 interface BookingStats {
   date: string
@@ -34,6 +37,14 @@ interface DepartmentStats {
 interface MealPopularity {
   name: string
   count: number
+}
+
+interface EarningsData {
+  totalEarnings: number
+  monthlyEarnings: number
+  yearlyEarnings: number
+  monthlyTrend: { month: string; earnings: number }[]
+  individualEarnings: { name: string; email: string; amount: number; meals: number }[]
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -58,10 +69,19 @@ export function ReportsPage() {
   const [statusDistribution, setStatusDistribution] = useState<StatusDistribution[]>([])
   const [departmentStats, setDepartmentStats] = useState<DepartmentStats[]>([])
   const [mealPopularity, setMealPopularity] = useState<MealPopularity[]>([])
+  const [earningsData, setEarningsData] = useState<EarningsData>({
+    totalEarnings: 0,
+    monthlyEarnings: 0,
+    yearlyEarnings: 0,
+    monthlyTrend: [],
+    individualEarnings: [],
+  })
+  const [earningsTimeRange, setEarningsTimeRange] = useState<'6months' | '1year'>('6months')
 
   useEffect(() => {
     fetchReportData()
-  }, [timeRange])
+    fetchEarningsData()
+  }, [timeRange, earningsTimeRange])
 
   const fetchReportData = async () => {
     setIsLoading(true)
@@ -156,6 +176,94 @@ export function ReportsPage() {
     }
   }
 
+  const fetchEarningsData = async () => {
+    try {
+      // Calculate date range
+      const endDate = new Date()
+      const startDate = earningsTimeRange === '6months' ? subMonths(endDate, 6) : subMonths(endDate, 12)
+      const startMonth = format(startDate, 'yyyy-MM')
+      const currentMonth = format(endDate, 'yyyy-MM')
+
+      // Fetch all paid payments in date range
+      const { data: payments, error } = await supabase
+        .from('payments')
+        .select(`
+          *,
+          profile:profiles (full_name, email)
+        `)
+        .eq('status', 'paid')
+        .gte('month', startMonth)
+        .lte('month', currentMonth)
+
+      if (error) throw error
+
+      const typedPayments = (payments || []) as PaymentWithProfile[]
+
+      // Calculate total earnings
+      const totalEarnings = typedPayments.reduce((sum, p) => sum + (p.amount || 0), 0)
+
+      // Calculate current month earnings
+      const monthlyEarnings = typedPayments
+        .filter((p) => p.month === currentMonth)
+        .reduce((sum, p) => sum + (p.amount || 0), 0)
+
+      // Calculate yearly earnings (last 12 months)
+      const yearlyEarnings = totalEarnings
+
+      // Monthly trend data
+      const monthMap = new Map<string, number>()
+      const months = earningsTimeRange === '6months' ? 6 : 12
+      for (let i = 0; i < months; i++) {
+        const date = format(subMonths(endDate, months - 1 - i), 'yyyy-MM')
+        monthMap.set(date, 0)
+      }
+
+      typedPayments.forEach((payment) => {
+        const month = payment.month
+        if (monthMap.has(month)) {
+          monthMap.set(month, (monthMap.get(month) || 0) + (payment.amount || 0))
+        }
+      })
+
+      const monthlyTrend = Array.from(monthMap.entries()).map(([month, earnings]) => ({
+        month: format(new Date(month + '-01'), 'MMM yyyy'),
+        earnings,
+      }))
+
+      // Individual earnings
+      const userMap = new Map<string, { name: string; email: string; amount: number; meals: number }>()
+      typedPayments.forEach((payment) => {
+        const userId = payment.user_id
+        const existing = userMap.get(userId)
+        if (existing) {
+          existing.amount += payment.amount || 0
+          existing.meals += payment.meal_count || 0
+        } else {
+          userMap.set(userId, {
+            name: payment.profile?.full_name || 'Unknown',
+            email: payment.profile?.email || '',
+            amount: payment.amount || 0,
+            meals: payment.meal_count || 0,
+          })
+        }
+      })
+
+      const individualEarnings = Array.from(userMap.values())
+        .sort((a, b) => b.amount - a.amount)
+        .slice(0, 10)
+
+      setEarningsData({
+        totalEarnings,
+        monthlyEarnings,
+        yearlyEarnings,
+        monthlyTrend,
+        individualEarnings,
+      })
+    } catch (error) {
+      console.error('Error fetching earnings data:', error)
+    }
+  }
+
   if (isLoading) {
     return <Loading fullScreen text="Loading reports..." />
   }
@@ -188,7 +296,7 @@ export function ReportsPage() {
           </CardHeader>
           <CardContent>
             <div className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height="100%" minHeight={0}>
                 <BarChart data={bookingsByDate}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
                   <XAxis dataKey="date" tick={{ fontSize: 12 }} />
@@ -214,7 +322,7 @@ export function ReportsPage() {
           </CardHeader>
           <CardContent>
             <div className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height="100%" minHeight={0}>
                 <PieChart>
                   <Pie
                     data={statusDistribution}
@@ -253,7 +361,7 @@ export function ReportsPage() {
           </CardHeader>
           <CardContent>
             <div className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height="100%" minHeight={0}>
                 <BarChart data={departmentStats} layout="vertical">
                   <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
                   <XAxis type="number" tick={{ fontSize: 12 }} />
@@ -279,7 +387,7 @@ export function ReportsPage() {
           </CardHeader>
           <CardContent>
             <div className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height="100%" minHeight={0}>
                 <BarChart data={mealPopularity} layout="vertical">
                   <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
                   <XAxis type="number" tick={{ fontSize: 12 }} />
@@ -299,10 +407,144 @@ export function ReportsPage() {
         </Card>
       </div>
 
+      {/* Earnings Analytics Section */}
+      <div className="border-t border-gray-200 pt-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+          <div>
+            <h2 className="text-xl font-bold text-gray-900">Earnings Analytics</h2>
+            <p className="text-gray-500">Revenue and payment insights</p>
+          </div>
+          <Select
+            options={[
+              { value: '6months', label: 'Last 6 Months' },
+              { value: '1year', label: 'Last 1 Year' },
+            ]}
+            value={earningsTimeRange}
+            onChange={(e) => setEarningsTimeRange(e.target.value as '6months' | '1year')}
+            className="w-40"
+          />
+        </div>
+
+        {/* Earnings Summary Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+          <Card>
+            <CardContent className="py-4">
+              <div className="text-center">
+                <p className="text-sm text-gray-500 mb-1">Total Earnings</p>
+                <p className="text-3xl font-bold text-gray-900">৳{earningsData.totalEarnings.toFixed(0)}</p>
+                <p className="text-xs text-gray-400 mt-1">
+                  {earningsTimeRange === '6months' ? 'Last 6 months' : 'Last 12 months'}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="py-4">
+              <div className="text-center">
+                <p className="text-sm text-gray-500 mb-1">This Month</p>
+                <p className="text-3xl font-bold text-green-600">৳{earningsData.monthlyEarnings.toFixed(0)}</p>
+                <p className="text-xs text-gray-400 mt-1">{format(new Date(), 'MMMM yyyy')}</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="py-4">
+              <div className="text-center">
+                <p className="text-sm text-gray-500 mb-1">Average Monthly</p>
+                <p className="text-3xl font-bold text-blue-600">
+                  ৳{earningsData.monthlyTrend.length > 0 
+                    ? (earningsData.totalEarnings / earningsData.monthlyTrend.length).toFixed(0) 
+                    : 0}
+                </p>
+                <p className="text-xs text-gray-400 mt-1">Per month average</p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Monthly Trend Chart */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Monthly Earnings Trend</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="h-[300px]">
+                <ResponsiveContainer width="100%" height="100%" minHeight={0}>
+                  <LineChart data={earningsData.monthlyTrend}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+                    <XAxis dataKey="month" tick={{ fontSize: 12 }} />
+                    <YAxis tick={{ fontSize: 12 }} />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: '#fff',
+                        border: '1px solid #E5E7EB',
+                        borderRadius: '8px',
+                      }}
+                      formatter={(value) => [`৳${Number(value).toFixed(0)}`, 'Earnings']}
+                    />
+                    <Line 
+                      type="monotone" 
+                      dataKey="earnings" 
+                      stroke="#10B981" 
+                      strokeWidth={2}
+                      dot={{ fill: '#10B981', r: 4 }}
+                      activeDot={{ r: 6 }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Top Users by Spending */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Top Users by Spending</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-gray-200">
+                      <th className="px-3 py-2 text-left text-sm font-medium text-gray-500">User</th>
+                      <th className="px-3 py-2 text-right text-sm font-medium text-gray-500">Meals</th>
+                      <th className="px-3 py-2 text-right text-sm font-medium text-gray-500">Amount</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {earningsData.individualEarnings.length === 0 ? (
+                      <tr>
+                        <td colSpan={3} className="px-3 py-4 text-center text-gray-500 text-sm">
+                          No payment data available
+                        </td>
+                      </tr>
+                    ) : (
+                      earningsData.individualEarnings.map((user, index) => (
+                        <tr key={index} className="hover:bg-gray-50">
+                          <td className="px-3 py-2">
+                            <p className="font-medium text-gray-900 text-sm">{user.name}</p>
+                            <p className="text-xs text-gray-500">{user.email}</p>
+                          </td>
+                          <td className="px-3 py-2 text-right text-gray-600">{user.meals}</td>
+                          <td className="px-3 py-2 text-right font-medium text-green-600">
+                            ৳{user.amount.toFixed(0)}
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
       {/* Summary Stats */}
       <Card>
         <CardHeader>
-          <CardTitle>Summary</CardTitle>
+          <CardTitle>Booking Summary</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

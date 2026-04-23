@@ -62,21 +62,49 @@ export function MealCard({
       </div>
 
       <CardContent className="space-y-3">
-        {/* Meal Type Badge */}
+        {/* Meal Type Badge & User Booking Quantity */}
         <div className="flex items-center justify-between">
           <span className="text-xs font-medium text-primary-600 uppercase tracking-wide">
             {t(meal.meal_type)}
           </span>
-          <div className={`px-2 py-1 rounded-full text-xs font-medium ${capacityInfo.color}`}>
-            {capacityInfo.label}
+          <div className="flex items-center gap-2">
+            {/* Show user booking quantity prominently if they have a booking */}
+            {userHasBooking && (
+              <div className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700 flex items-center gap-1">
+                <span>Booked</span>
+                {userBookingQuantity > 1 && (
+                  <span className="bg-green-200 px-1.5 py-0.5 rounded text-xs font-bold">
+                    ×{isBangla ? toBengaliNumber(userBookingQuantity) : userBookingQuantity}
+                  </span>
+                )}
+              </div>
+            )}
+            <div className={`px-2 py-1 rounded-full text-xs font-medium ${capacityInfo.color}`}>
+              {capacityInfo.label}
+            </div>
           </div>
         </div>
 
         {/* Name & Description */}
         <div>
-          <h3 className="font-semibold text-gray-900">{meal.name}</h3>
+          <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+            {meal.name}
+            {/* Show quantity indicator inline with meal name */}
+            {userHasBooking && userBookingQuantity > 1 && (
+              <span className="text-xs font-normal text-white bg-primary-500 px-2 py-0.5 rounded-full">
+                Qty: {isBangla ? toBengaliNumber(userBookingQuantity) : userBookingQuantity}
+              </span>
+            )}
+          </h3>
           {meal.description && (
             <p className="text-sm text-gray-500 mt-1 line-clamp-2">{meal.description}</p>
+          )}
+          {/* Show total price for quantity bookings */}
+          {userHasBooking && displayPrice > 0 && userBookingQuantity > 1 && (
+            <p className="text-xs text-primary-600 mt-1">
+              Total: ৳{isBangla ? toBengaliNumber(displayPrice * userBookingQuantity) : displayPrice * userBookingQuantity} 
+              ({isBangla ? toBengaliNumber(userBookingQuantity) : userBookingQuantity} × ৳{isBangla ? toBengaliNumber(displayPrice) : displayPrice})
+            </p>
           )}
         </div>
 

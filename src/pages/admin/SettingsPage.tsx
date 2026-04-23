@@ -1,15 +1,16 @@
 import { useEffect, useState } from 'react'
-import { Clock, RotateCcw, Save, AlertCircle } from 'lucide-react'
-import { Card, CardContent, CardHeader, CardTitle, Button, Input } from '../../components/ui'
+import { Clock, RotateCcw, Save, AlertCircle, Wallet } from 'lucide-react'
+import { Card, CardContent, CardHeader, CardTitle, Button, Input, Toggle } from '../../components/ui'
 import { useSettingsStore, useAuthStore } from '../../store'
 import toast from 'react-hot-toast'
 
 export function SettingsPage() {
   const { user } = useAuthStore()
-  const { bookingTimeLimit, cancellationTimeLimit, fetchSettings, updateSetting } = useSettingsStore()
+  const { bookingTimeLimit, cancellationTimeLimit, advancePaymentEnabled, fetchSettings, updateSetting } = useSettingsStore()
   
   const [bookingLimit, setBookingLimit] = useState<number>(60)
   const [cancellationLimit, setCancellationLimit] = useState<number>(120)
+  const [advancePayment, setAdvancePayment] = useState<boolean>(false)
   const [isSaving, setIsSaving] = useState(false)
 
   useEffect(() => {
@@ -19,13 +20,15 @@ export function SettingsPage() {
   useEffect(() => {
     setBookingLimit(bookingTimeLimit)
     setCancellationLimit(cancellationTimeLimit)
-  }, [bookingTimeLimit, cancellationTimeLimit])
+    setAdvancePayment(advancePaymentEnabled)
+  }, [bookingTimeLimit, cancellationTimeLimit, advancePaymentEnabled])
 
   const handleSave = async () => {
     setIsSaving(true)
     const results = await Promise.all([
       updateSetting('booking_time_limit', bookingLimit.toString(), user?.id),
       updateSetting('cancellation_time_limit', cancellationLimit.toString(), user?.id),
+      updateSetting('advance_payment_enabled', advancePayment.toString(), user?.id),
     ])
 
     const hasError = results.some((r) => r.error)
@@ -112,6 +115,37 @@ export function SettingsPage() {
             <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
             <p className="text-sm">
               Example: If set to 120 minutes, users cannot cancel after 10:00 AM for a 12:00 PM meal.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Advance Payment Toggle */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Wallet className="h-5 w-5" /> Advance Payment System
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-sm text-gray-600">
+            Enable or disable the advance payment feature for users. When enabled, users can 
+            deposit money in advance and their balance will be tracked. The due amount will 
+            be automatically adjusted against their available balance.
+          </p>
+          <div className="flex items-center gap-4">
+            <Toggle
+              checked={advancePayment}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setAdvancePayment(e.target.checked)}
+              label="Enable Advance Payment"
+            />
+          </div>
+          <div className={`flex items-start gap-2 p-3 rounded-lg ${advancePayment ? 'bg-green-50 text-green-700' : 'bg-gray-50 text-gray-600'}`}>
+            <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+            <p className="text-sm">
+              {advancePayment 
+                ? 'Advance payment is enabled. Users will see their balance and can make deposits. Due amounts will be automatically adjusted.'
+                : 'Advance payment is disabled. Users will only see monthly bills without balance tracking.'}
             </p>
           </div>
         </CardContent>

@@ -277,6 +277,86 @@ export interface Database {
         }
         Relationships: []
       }
+      user_balances: {
+        Row: {
+          id: string
+          user_id: string
+          balance: number
+          total_deposits: number
+          total_consumed: number
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          balance?: number
+          total_deposits?: number
+          total_consumed?: number
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          balance?: number
+          total_deposits?: number
+          total_consumed?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_balances_user_id_fkey"
+            columns: ["user_id"]
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      advance_payments: {
+        Row: {
+          id: string
+          user_id: string
+          amount: number
+          type: 'deposit' | 'adjustment' | 'meal_charge' | 'refund'
+          description: string | null
+          month: string | null
+          created_by: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          amount: number
+          type: 'deposit' | 'adjustment' | 'meal_charge' | 'refund'
+          description?: string | null
+          month?: string | null
+          created_by?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          amount?: number
+          type?: 'deposit' | 'adjustment' | 'meal_charge' | 'refund'
+          description?: string | null
+          month?: string | null
+          created_by?: string | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "advance_payments_user_id_fkey"
+            columns: ["user_id"]
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "advance_payments_created_by_fkey"
+            columns: ["created_by"]
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -342,4 +422,33 @@ export interface MealType {
 
 export interface PaymentWithProfile extends Payment {
   profile?: Profile
+}
+
+export interface UserBalance {
+  id: string
+  user_id: string
+  balance: number
+  total_deposits: number
+  total_consumed: number
+  updated_at: string
+}
+
+export interface AdvancePayment {
+  id: string
+  user_id: string
+  amount: number
+  type: 'deposit' | 'adjustment' | 'meal_charge' | 'refund'
+  description: string | null
+  month: string | null
+  created_by: string | null
+  created_at: string
+}
+
+export interface UserBalanceWithProfile extends UserBalance {
+  profile?: Profile
+}
+
+export interface AdvancePaymentWithProfile extends AdvancePayment {
+  profile?: Profile
+  creator?: Profile
 }

@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabaseClient'
 interface SettingsState {
   bookingTimeLimit: number // minutes before meal time when booking closes
   cancellationTimeLimit: number // minutes before meal time when cancellation is allowed
+  advancePaymentEnabled: boolean // whether advance payment feature is enabled
   isLoading: boolean
   error: string | null
 
@@ -14,10 +15,12 @@ interface SettingsState {
 
 const DEFAULT_BOOKING_TIME_LIMIT = 60 // 1 hour before meal time
 const DEFAULT_CANCELLATION_TIME_LIMIT = 120 // 2 hours before meal time
+const DEFAULT_ADVANCE_PAYMENT_ENABLED = false
 
 export const useSettingsStore = create<SettingsState>((set) => ({
   bookingTimeLimit: DEFAULT_BOOKING_TIME_LIMIT,
   cancellationTimeLimit: DEFAULT_CANCELLATION_TIME_LIMIT,
+  advancePaymentEnabled: DEFAULT_ADVANCE_PAYMENT_ENABLED,
   isLoading: false,
   error: null,
 
@@ -27,22 +30,28 @@ export const useSettingsStore = create<SettingsState>((set) => ({
       const { data, error } = await supabase
         .from('app_settings')
         .select('*')
-        .in('key', ['booking_time_limit', 'cancellation_time_limit'])
+        .in('key', ['booking_time_limit', 'cancellation_time_limit', 'advance_payment_enabled'])
 
       if (error) throw error
 
-      const settings: Record<string, number> = {
+      const settings: Record<string, number | boolean> = {
         booking_time_limit: DEFAULT_BOOKING_TIME_LIMIT,
         cancellation_time_limit: DEFAULT_CANCELLATION_TIME_LIMIT,
+        advance_payment_enabled: DEFAULT_ADVANCE_PAYMENT_ENABLED,
       }
 
       data?.forEach((setting) => {
-        settings[setting.key] = parseInt(setting.value, 10) || settings[setting.key]
+        if (setting.key === 'advance_payment_enabled') {
+          settings[setting.key] = setting.value === 'true'
+        } else {
+          settings[setting.key] = parseInt(setting.value, 10) || settings[setting.key]
+        }
       })
 
       set({
-        bookingTimeLimit: settings.booking_time_limit,
-        cancellationTimeLimit: settings.cancellation_time_limit,
+        bookingTimeLimit: settings.booking_time_limit as number,
+        cancellationTimeLimit: settings.cancellation_time_limit as number,
+        advancePaymentEnabled: settings.advance_payment_enabled as boolean,
       })
     } catch (error) {
       set({ error: (error as Error).message })
@@ -73,6 +82,8 @@ export const useSettingsStore = create<SettingsState>((set) => ({
         set({ bookingTimeLimit: parseInt(value, 10) })
       } else if (key === 'cancellation_time_limit') {
         set({ cancellationTimeLimit: parseInt(value, 10) })
+      } else if (key === 'advance_payment_enabled') {
+        set({ advancePaymentEnabled: value === 'true' })
       }
 
       return { error: null }

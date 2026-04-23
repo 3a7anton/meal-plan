@@ -1,9 +1,13 @@
-import { defineConfig } from 'vite'
+import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react-swc'
 import { createClient } from '@supabase/supabase-js'
 
 // https://vite.dev/config/
-export default defineConfig({
+export default defineConfig(({ mode }) => {
+  // Load all env vars (including non-VITE_ prefixed ones) for server-side use
+  const env = loadEnv(mode, process.cwd(), '')
+
+  return {
   plugins: [
     react(),
     {
@@ -13,7 +17,8 @@ export default defineConfig({
           try {
             // Extract route from URL
             const url = req.url || ''
-            const routeMatch = url.match(/^\/api\/([^?]+)/)
+            // When mounted at '/api/', req.url is the sub-path (e.g. '/bookings/history?...')
+            const routeMatch = url.match(/^\/([^?]+)/)
             if (!routeMatch) return next()
             
             const routePath = routeMatch[1].replace(/\/$/, '')
@@ -43,9 +48,9 @@ export default defineConfig({
                 return
               }
               
-              // Initialize Supabase client
-              const supabaseUrl = process.env.VITE_SUPABASE_URL
-              const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+              // Initialize Supabase client (use env loaded by loadEnv)
+              const supabaseUrl = env.VITE_SUPABASE_URL
+              const supabaseServiceKey = env.SUPABASE_SERVICE_ROLE_KEY
               
               if (!supabaseUrl || !supabaseServiceKey) {
                 res.statusCode = 500
@@ -209,4 +214,5 @@ export default defineConfig({
       },
     },
   },
+  }
 })
