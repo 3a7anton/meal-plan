@@ -1,6 +1,6 @@
 import { UtensilsCrossed, Clock, Users } from 'lucide-react'
 import { Card, CardContent, Button } from '../ui'
-import { formatTime, toBengaliNumber } from '../../lib/utils'
+import { formatTime, toBengaliNumber, getOptimizedImageUrl } from '../../lib/utils'
 import { useTranslation } from '../../hooks/useTranslation'
 import type { MenuScheduleWithMeal } from '../../types'
 import { BookingTimer } from './BookingTimer'
@@ -52,9 +52,13 @@ export function MealCard({
       <div className="h-40 bg-gradient-to-br from-primary-50 to-primary-100 flex items-center justify-center">
         {meal.image_url ? (
           <img
-            src={meal.image_url}
+            src={getOptimizedImageUrl(meal.image_url, 328, 160)}
             alt={meal.name}
             className="w-full h-full object-cover"
+            width={328}
+            height={160}
+            loading="lazy"
+            decoding="async"
           />
         ) : (
           <UtensilsCrossed className="h-12 w-12 text-primary-300" />

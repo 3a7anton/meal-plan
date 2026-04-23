@@ -92,7 +92,7 @@ export function ImageUpload({ currentUrl, onUpload, userId }: ImageUploadProps) 
         {preview ? (
           <div className="relative group">
             <img
-              src={preview?.startsWith('blob:') ? preview : getOptimizedImageUrl(preview, 256, 256)}
+              src={preview?.startsWith('blob:') ? preview : getOptimizedImageUrl(preview, 128, 128)}
               alt="Profile"
               className="h-32 w-32 rounded-full object-cover border-4 border-primary-100"
               width={128}

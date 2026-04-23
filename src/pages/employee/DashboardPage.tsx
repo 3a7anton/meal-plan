@@ -243,7 +243,7 @@ export function DashboardPage() {
         <div className="bg-gradient-to-r from-primary-600 to-primary-700 rounded-2xl p-6 h-32 animate-pulse" />
 
         {/* Stats Cards Skeleton */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 min-h-[104px]">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <CardSkeleton />
           <CardSkeleton />
           <CardSkeleton />
@@ -275,12 +275,13 @@ export function DashboardPage() {
           <div className="h-16 w-16 rounded-full bg-white/20 flex items-center justify-center overflow-hidden border-2 border-white/30">
             {profile?.avatar_url ? (
               <img
-                src={getOptimizedImageUrl(profile.avatar_url, 128, 128)}
+                src={getOptimizedImageUrl(profile.avatar_url, 64, 64)}
                 alt={profile.full_name || 'User avatar'}
                 className="h-full w-full object-cover"
                 width={64}
                 height={64}
-                loading="eager"
+                loading="lazy"
+                decoding="async"
               />
             ) : (
               <span className="text-2xl font-bold text-white">
@@ -316,57 +317,57 @@ export function DashboardPage() {
       )}
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 min-h-[104px]">
-        <Card>
-          <CardContent className="flex items-center gap-4 py-4">
-            <div className="h-12 w-12 bg-primary-100 rounded-xl flex items-center justify-center">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card className="h-[104px]">
+          <CardContent className="flex items-center gap-4 py-4 h-full">
+            <div className="h-12 w-12 bg-primary-100 rounded-xl flex items-center justify-center flex-shrink-0">
               <CalendarDays className="h-6 w-6 text-primary-600" />
             </div>
-            <div>
-              <p className="text-2xl font-bold text-gray-900">
+            <div className="min-w-0">
+              <p className="text-2xl font-bold text-gray-900 leading-tight">
                 {bookings.filter((b) => b.status === 'confirmed').length || '—'}
               </p>
-              <p className="text-sm text-gray-500">{t('confirmedBookings')}</p>
+              <p className="text-sm text-gray-500 leading-tight">{t('confirmedBookings')}</p>
             </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardContent className="flex items-center gap-4 py-4">
-            <div className="h-12 w-12 bg-yellow-100 rounded-xl flex items-center justify-center">
+        <Card className="h-[104px]">
+          <CardContent className="flex items-center gap-4 py-4 h-full">
+            <div className="h-12 w-12 bg-yellow-100 rounded-xl flex items-center justify-center flex-shrink-0">
               <Clock className="h-6 w-6 text-yellow-600" />
             </div>
-            <div>
-              <p className="text-2xl font-bold text-gray-900">
+            <div className="min-w-0">
+              <p className="text-2xl font-bold text-gray-900 leading-tight">
                 {bookings.filter((b) => b.status === 'pending').length || '—'}
               </p>
-              <p className="text-sm text-gray-500">{t('pendingBookings')}</p>
+              <p className="text-sm text-gray-500 leading-tight">{t('pendingBookings')}</p>
             </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardContent className="flex items-center gap-4 py-4">
-            <div className="h-12 w-12 bg-green-100 rounded-xl flex items-center justify-center">
+        <Card className="h-[104px]">
+          <CardContent className="flex items-center gap-4 py-4 h-full">
+            <div className="h-12 w-12 bg-green-100 rounded-xl flex items-center justify-center flex-shrink-0">
               <UtensilsCrossed className="h-6 w-6 text-green-600" />
             </div>
-            <div>
-              <p className="text-2xl font-bold text-gray-900">{todaysSchedules.length || '—'}</p>
-              <p className="text-sm text-gray-500">{t('availableToday')}</p>
+            <div className="min-w-0">
+              <p className="text-2xl font-bold text-gray-900 leading-tight">{todaysSchedules.length || '—'}</p>
+              <p className="text-sm text-gray-500 leading-tight">{t('availableToday')}</p>
             </div>
           </CardContent>
         </Card>
 
-        <Card className={hasDue ? 'border-red-200' : ''}>
-          <CardContent className="flex items-center gap-4 py-4">
-            <div className={`h-12 w-12 rounded-xl flex items-center justify-center ${hasDue ? 'bg-red-100' : 'bg-blue-100'}`}>
+        <Card className={`h-[104px] ${hasDue ? 'border-red-200' : ''}`}>
+          <CardContent className="flex items-center gap-4 py-4 h-full">
+            <div className={`h-12 w-12 rounded-xl flex items-center justify-center flex-shrink-0 ${hasDue ? 'bg-red-100' : 'bg-blue-100'}`}>
               <DollarSign className={`h-6 w-6 ${hasDue ? 'text-red-600' : 'text-blue-600'}`} />
             </div>
-            <div>
-              <p className={`text-2xl font-bold ${hasDue ? 'text-red-700' : 'text-gray-900'}`}>
-                {isLoadingDue ? '...' : hasDue ? `৳${dueAmount!.toFixed(0)}` : '—'}
+            <div className="min-w-0">
+              <p className={`text-2xl font-bold leading-tight ${hasDue ? 'text-red-700' : 'text-gray-900'}`}>
+                {isLoadingDue ? '—' : hasDue ? `৳${dueAmount!.toFixed(0)}` : '—'}
               </p>
-              <p className="text-sm text-gray-500">{t('dueAmount')}</p>
+              <p className="text-sm text-gray-500 leading-tight">{t('dueAmount')}</p>
             </div>
           </CardContent>
         </Card>

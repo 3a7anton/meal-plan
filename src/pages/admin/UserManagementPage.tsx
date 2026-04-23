@@ -265,54 +265,54 @@ export function UserManagementPage() {
         </Card>
       )}
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="flex items-center gap-4 py-4">
-            <div className="h-12 w-12 bg-primary-100 rounded-xl flex items-center justify-center">
+        <Card className="h-[104px]">
+          <CardContent className="flex items-center gap-4 py-4 h-full">
+            <div className="h-12 w-12 bg-primary-100 rounded-xl flex items-center justify-center flex-shrink-0">
               <Users className="h-6 w-6 text-primary-600" />
             </div>
-            <div>
-              <p className="text-2xl font-bold text-gray-900">{users.length}</p>
-              <p className="text-sm text-gray-500">Total Users</p>
+            <div className="min-w-0">
+              <p className="text-2xl font-bold text-gray-900 leading-tight">{users.length}</p>
+              <p className="text-sm text-gray-500 leading-tight">Total Users</p>
             </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardContent className="flex items-center gap-4 py-4">
-            <div className="h-12 w-12 bg-purple-100 rounded-xl flex items-center justify-center">
+        <Card className="h-[104px]">
+          <CardContent className="flex items-center gap-4 py-4 h-full">
+            <div className="h-12 w-12 bg-purple-100 rounded-xl flex items-center justify-center flex-shrink-0">
               <Shield className="h-6 w-6 text-purple-600" />
             </div>
-            <div>
-              <p className="text-2xl font-bold text-gray-900">
+            <div className="min-w-0">
+              <p className="text-2xl font-bold text-gray-900 leading-tight">
                 {users.filter((u) => ['admin', 'food_editor', 'finance_editor'].includes(u.role)).length}
               </p>
-              <p className="text-sm text-gray-500">Admins</p>
+              <p className="text-sm text-gray-500 leading-tight">Admins</p>
             </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardContent className="flex items-center gap-4 py-4">
-            <div className="h-12 w-12 bg-green-100 rounded-xl flex items-center justify-center">
+        <Card className="h-[104px]">
+          <CardContent className="flex items-center gap-4 py-4 h-full">
+            <div className="h-12 w-12 bg-green-100 rounded-xl flex items-center justify-center flex-shrink-0">
               <UserCheck className="h-6 w-6 text-green-600" />
             </div>
-            <div>
-              <p className="text-2xl font-bold text-gray-900">
+            <div className="min-w-0">
+              <p className="text-2xl font-bold text-gray-900 leading-tight">
                 {users.filter((u) => u.is_active).length}
               </p>
-              <p className="text-sm text-gray-500">Active Users</p>
+              <p className="text-sm text-gray-500 leading-tight">Active Users</p>
             </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardContent className="flex items-center gap-4 py-4">
-            <div className="h-12 w-12 bg-amber-100 rounded-xl flex items-center justify-center">
+        <Card className="h-[104px]">
+          <CardContent className="flex items-center gap-4 py-4 h-full">
+            <div className="h-12 w-12 bg-amber-100 rounded-xl flex items-center justify-center flex-shrink-0">
               <UserX className="h-6 w-6 text-amber-600" />
             </div>
-            <div>
-              <p className="text-2xl font-bold text-gray-900">{pendingCount}</p>
-              <p className="text-sm text-gray-500">Pending Approval</p>
+            <div className="min-w-0">
+              <p className="text-2xl font-bold text-gray-900 leading-tight">{pendingCount}</p>
+              <p className="text-sm text-gray-500 leading-tight">Pending Approval</p>
             </div>
           </CardContent>
         </Card>
