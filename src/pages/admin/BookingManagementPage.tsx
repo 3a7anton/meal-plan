@@ -264,3 +264,5 @@ export function BookingManagementPage() {
     </div>
   )
 }
+
+export default BookingManagementPage

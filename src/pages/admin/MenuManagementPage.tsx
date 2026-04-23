@@ -551,3 +551,5 @@ export function MenuManagementPage() {
     </div>
   )
 }
+
+export default MenuManagementPage

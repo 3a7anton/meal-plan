@@ -296,3 +296,5 @@ export function BookingsPage() {
     </div>
   )
 }
+
+export default BookingsPage

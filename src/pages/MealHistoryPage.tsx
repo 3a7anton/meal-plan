@@ -4,7 +4,7 @@ import {
   UtensilsCrossed, 
   Calendar, 
   Clock, 
-  DollarSign, 
+  DollarSign,
   User,
   Filter,
   Download,
@@ -412,3 +412,5 @@ export function MealHistoryPage() {
     </div>
   )
 }
+
+export default MealHistoryPage

@@ -496,3 +496,5 @@ export function UserManagementPage() {
     </div>
   )
 }
+
+export default UserManagementPage

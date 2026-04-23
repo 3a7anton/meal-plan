@@ -224,7 +224,7 @@ const en: Translations = {
   you: 'Me',
   
   // Currency
-  currency: '$',
+  currency: '৳',
   currencyBDT: '৳',
 };
 

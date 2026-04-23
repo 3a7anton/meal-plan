@@ -353,3 +353,5 @@ export function PaymentsPage() {
     </div>
   )
 }
+
+export default PaymentsPage
