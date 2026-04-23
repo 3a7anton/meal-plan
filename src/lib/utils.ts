@@ -96,3 +96,24 @@ export function toBengaliNumber(num: number | string): string {
     return char
   }).join('')
 }
+
+/**
+ * Adds Supabase image transformation parameters to resize images
+ * Reduces download size significantly for avatars and thumbnails
+ * @param url - The original Supabase storage URL
+ * @param width - Desired width in pixels
+ * @param height - Desired height in pixels
+ * @returns Optimized URL with transformation parameters
+ */
+export function getOptimizedImageUrl(url: string | null | undefined, width = 128, height = 128): string | undefined {
+  if (!url) return undefined
+  
+  // Only transform Supabase storage URLs
+  if (!url.includes('.supabase.co/storage/v1/object/public/')) {
+    return url
+  }
+  
+  // Add transformation parameters
+  const separator = url.includes('?') ? '&' : '?'
+  return `${url}${separator}width=${width}&height=${height}&quality=80&fit=cover`
+}

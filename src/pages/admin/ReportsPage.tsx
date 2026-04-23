@@ -432,7 +432,7 @@ export function ReportsPage() {
               <div className="text-center">
                 <p className="text-sm text-gray-500 mb-1">Total Earnings</p>
                 <p className="text-3xl font-bold text-gray-900">৳{earningsData.totalEarnings.toFixed(0)}</p>
-                <p className="text-xs text-gray-400 mt-1">
+                <p className="text-xs text-gray-500 mt-1">
                   {earningsTimeRange === '6months' ? 'Last 6 months' : 'Last 12 months'}
                 </p>
               </div>
@@ -443,7 +443,7 @@ export function ReportsPage() {
               <div className="text-center">
                 <p className="text-sm text-gray-500 mb-1">This Month</p>
                 <p className="text-3xl font-bold text-green-600">৳{earningsData.monthlyEarnings.toFixed(0)}</p>
-                <p className="text-xs text-gray-400 mt-1">{format(new Date(), 'MMMM yyyy')}</p>
+                <p className="text-xs text-gray-500 mt-1">{format(new Date(), 'MMMM yyyy')}</p>
               </div>
             </CardContent>
           </Card>
@@ -456,7 +456,7 @@ export function ReportsPage() {
                     ? (earningsData.totalEarnings / earningsData.monthlyTrend.length).toFixed(0) 
                     : 0}
                 </p>
-                <p className="text-xs text-gray-400 mt-1">Per month average</p>
+                <p className="text-xs text-gray-500 mt-1">Per month average</p>
               </div>
             </CardContent>
           </Card>

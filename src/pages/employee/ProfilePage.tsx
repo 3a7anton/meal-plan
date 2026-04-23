@@ -153,7 +153,7 @@ export function ProfilePage() {
                   error={profileForm.formState.errors.full_name?.message}
                   {...profileForm.register('full_name')}
                 />
-                <User className="absolute right-3 top-9 h-4 w-4 text-gray-400" />
+                <User className="absolute right-3 top-9 h-4 w-4 text-gray-500" />
               </div>
               <div className="relative">
                 <Input
@@ -162,7 +162,7 @@ export function ProfilePage() {
                   error={profileForm.formState.errors.phone?.message}
                   {...profileForm.register('phone')}
                 />
-                <Phone className="absolute right-3 top-9 h-4 w-4 text-gray-400" />
+                <Phone className="absolute right-3 top-9 h-4 w-4 text-gray-500" />
               </div>
             </div>
 
@@ -173,7 +173,7 @@ export function ProfilePage() {
                 error={profileForm.formState.errors.department?.message}
                 {...profileForm.register('department')}
               />
-              <Building2 className="absolute right-3 top-9 h-4 w-4 text-gray-400" />
+              <Building2 className="absolute right-3 top-9 h-4 w-4 text-gray-500" />
             </div>
 
             {/* Hidden avatar_url field - updated by ImageUpload */}
@@ -183,7 +183,7 @@ export function ProfilePage() {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">{t('currentEmail')}</label>
               <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-gray-500">
-                <Mail className="h-4 w-4 text-gray-400" />
+                <Mail className="h-4 w-4 text-gray-500" />
                 <span className="text-sm">{user?.email}</span>
               </div>
             </div>

@@ -57,14 +57,14 @@ export function BookingCard({
             <span className="text-xs font-medium text-primary-600 uppercase tracking-wide">
               {t(meal.meal_type)}
             </span>
-            <h3 className="font-semibold text-gray-900 mt-1">
+            <p className="font-semibold text-gray-900 mt-1">
               {meal.name}
               {bookingQuantity > 1 && (
                 <span className="ml-2 text-sm font-normal text-primary-600 bg-primary-50 px-2 py-0.5 rounded">
                   ×{isBangla ? toBengaliNumber(bookingQuantity) : bookingQuantity}
                 </span>
               )}
-            </h3>
+            </p>
           </div>
           <StatusBadge status={status} />
         </div>
@@ -92,7 +92,7 @@ export function BookingCard({
             <span className="text-gray-500">
               {t('mealCost')}
               {bookingQuantity > 1 && (
-                <span className="text-gray-400 ml-1">(×{bookingQuantity})</span>
+                <span className="text-gray-500 ml-1">(×{bookingQuantity})</span>
               )}
             </span>
             <span className="font-semibold text-primary-700">
@@ -102,7 +102,7 @@ export function BookingCard({
         )}
 
         {/* Booked At */}
-        <p className="text-xs text-gray-400">
+        <p className="text-xs text-gray-500">
           {t('bookedOn')} {new Date(booked_at).toLocaleDateString()}
         </p>
 

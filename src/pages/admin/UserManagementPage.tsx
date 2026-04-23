@@ -245,7 +245,7 @@ export function UserManagementPage() {
       {MAX_APPROVED_USERS > 0 && (
         <Card className={isAtLimit ? 'border-red-300 bg-red-50' : activeUsersCount >= MAX_APPROVED_USERS - 5 ? 'border-amber-300 bg-amber-50' : ''}>
           <CardContent className="flex items-center gap-3 py-4">
-            <AlertTriangle className={`h-5 w-5 ${isAtLimit ? 'text-red-600' : activeUsersCount >= MAX_APPROVED_USERS - 5 ? 'text-amber-600' : 'text-gray-400'}`} />
+            <AlertTriangle className={`h-5 w-5 ${isAtLimit ? 'text-red-600' : activeUsersCount >= MAX_APPROVED_USERS - 5 ? 'text-amber-600' : 'text-gray-500'}`} />
             <div className="flex-1">
               <p className={`font-medium ${isAtLimit ? 'text-red-800' : activeUsersCount >= MAX_APPROVED_USERS - 5 ? 'text-amber-800' : 'text-gray-700'}`}>
                 Account Limit: {activeUsersCount} / {MAX_APPROVED_USERS} approved users
@@ -388,7 +388,7 @@ export function UserManagementPage() {
                       <td className="px-4 py-3">
                         <p className="font-medium text-gray-900">{user.full_name}</p>
                         <p className="text-sm text-gray-500">{user.email}</p>
-                        {user.phone && <p className="text-xs text-gray-400">{user.phone}</p>}
+                        {user.phone && <p className="text-xs text-gray-500">{user.phone}</p>}
                       </td>
                       <td className="px-4 py-3 text-gray-600">{user.department || '-'}</td>
                       <td className="px-4 py-3">
@@ -408,7 +408,7 @@ export function UserManagementPage() {
                             ৳{user.due_amount.toFixed(0)}
                           </span>
                         ) : (
-                          <span className="text-gray-400 text-sm">—</span>
+                          <span className="text-gray-500 text-sm">—</span>
                         )}
                       </td>
                       <td className="px-4 py-3 text-gray-600 text-sm">

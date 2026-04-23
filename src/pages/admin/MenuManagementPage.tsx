@@ -311,7 +311,7 @@ export function MenuManagementPage() {
                         </td>
                         <td className="px-4 py-3 capitalize text-gray-600">{meal.meal_type}</td>
                         <td className="px-4 py-3 font-medium text-gray-900">
-                          {meal.price > 0 ? `৳${meal.price}` : <span className="text-gray-400">Free</span>}
+                          {meal.price > 0 ? `৳${meal.price}` : <span className="text-gray-500">Free</span>}
                         </td>
                         <td className="px-4 py-3">
                           <span

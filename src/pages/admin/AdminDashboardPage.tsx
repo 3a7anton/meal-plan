@@ -277,7 +277,7 @@ export function AdminDashboardPage() {
                             </Button>
                           </div>
                         ) : (
-                          <span className="text-sm text-gray-400">View only</span>
+                          <span className="text-sm text-gray-500">View only</span>
                         )}
                       </td>
                     </tr>

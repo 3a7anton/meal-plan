@@ -2,6 +2,7 @@ import { useState, useRef, type ChangeEvent } from 'react'
 import { Upload, X, Loader2 } from 'lucide-react'
 import { supabase } from '../../lib/supabaseClient'
 import { useTranslation } from '../../hooks/useTranslation'
+import { getOptimizedImageUrl } from '../../lib/utils'
 import toast from 'react-hot-toast'
 
 interface ImageUploadProps {
@@ -91,15 +92,18 @@ export function ImageUpload({ currentUrl, onUpload, userId }: ImageUploadProps) 
         {preview ? (
           <div className="relative group">
             <img
-              src={preview}
+              src={preview?.startsWith('blob:') ? preview : getOptimizedImageUrl(preview, 256, 256)}
               alt="Profile"
               className="h-32 w-32 rounded-full object-cover border-4 border-primary-100"
+              width={128}
+              height={128}
             />
             {!isUploading && (
               <button
                 type="button"
                 onClick={handleRemove}
                 className="absolute -top-2 -right-2 p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
+                aria-label="Remove profile photo"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -112,7 +116,7 @@ export function ImageUpload({ currentUrl, onUpload, userId }: ImageUploadProps) 
           </div>
         ) : (
           <div className="h-32 w-32 rounded-full bg-gray-100 border-4 border-gray-200 flex items-center justify-center">
-            <Upload className="h-10 w-10 text-gray-400" />
+            <Upload className="h-10 w-10 text-gray-500" />
           </div>
         )}
       </div>
@@ -134,7 +138,7 @@ export function ImageUpload({ currentUrl, onUpload, userId }: ImageUploadProps) 
             inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm
             transition-colors cursor-pointer
             ${isUploading 
-              ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+              ? 'bg-gray-100 text-gray-500 cursor-not-allowed' 
               : 'bg-primary-600 text-white hover:bg-primary-700'
             }
           `}

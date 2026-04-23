@@ -13,6 +13,7 @@ export function Navbar() {
         <button
           onClick={toggleMobileMenu}
           className="lg:hidden p-2 rounded-lg text-gray-600 hover:bg-gray-100"
+          aria-label={isMobileMenuOpen ? 'Close menu' : 'Open menu'}
         >
           {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
         </button>

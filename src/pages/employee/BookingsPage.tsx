@@ -238,31 +238,31 @@ export function BookingsPage() {
             {/* Details Grid */}
             <div className="grid grid-cols-2 gap-4">
               <div className="flex items-center gap-2 text-sm">
-                <Calendar className="h-4 w-4 text-gray-400" />
+                <Calendar className="h-4 w-4 text-gray-500" />
                 <span className="text-gray-600">{t('date')}:</span>
                 <span className="font-medium">
                   {new Date(viewingBooking.menu_schedule.scheduled_date).toLocaleDateString()}
                 </span>
               </div>
               <div className="flex items-center gap-2 text-sm">
-                <Clock className="h-4 w-4 text-gray-400" />
+                <Clock className="h-4 w-4 text-gray-500" />
                 <span className="text-gray-600">{t('time')}:</span>
                 <span className="font-medium">{viewingBooking.menu_schedule.time_slot}</span>
               </div>
               <div className="flex items-center gap-2 text-sm">
-                <CreditCard className="h-4 w-4 text-gray-400" />
+                <CreditCard className="h-4 w-4 text-gray-500" />
                 <span className="text-gray-600">{t('price')}:</span>
                 <span className="font-medium">
                   ৳{((viewingBooking.menu_schedule.price || viewingBooking.menu_schedule.meal.price || 0) * (viewingBooking.quantity || 1))}
                   {(viewingBooking.quantity || 1) > 1 && (
-                    <span className="text-gray-400 text-xs ml-1">
+                    <span className="text-gray-500 text-xs ml-1">
                       (৳{viewingBooking.menu_schedule.price || viewingBooking.menu_schedule.meal.price || 0} × {viewingBooking.quantity})
                     </span>
                   )}
                 </span>
               </div>
               <div className="flex items-center gap-2 text-sm">
-                <User className="h-4 w-4 text-gray-400" />
+                <User className="h-4 w-4 text-gray-500" />
                 <span className="text-gray-600">{t('status')}:</span>
                 <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${
                   viewingBooking.status === 'confirmed' ? 'bg-green-100 text-green-700' :

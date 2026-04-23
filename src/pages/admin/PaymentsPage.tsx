@@ -339,7 +339,7 @@ export function PaymentsPage() {
                           </Button>
                         )}
                         {!bill.payment && bill.calculated_meal_count === 0 && (
-                          <span className="text-xs text-gray-400">No meals this month</span>
+                          <span className="text-xs text-gray-500">No meals this month</span>
                         )}
                       </td>
                     </tr>

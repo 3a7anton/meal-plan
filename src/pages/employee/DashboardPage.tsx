@@ -7,6 +7,7 @@ import { useTranslation } from '../../hooks/useTranslation'
 import { BookingCard, MealCard } from '../../components/employee'
 import { format, subMonths } from 'date-fns'
 import { supabase } from '../../lib/supabaseClient'
+import { getOptimizedImageUrl } from '../../lib/utils'
 import type { UserBalance } from '../../types'
 
 export function DashboardPage() {
@@ -242,7 +243,7 @@ export function DashboardPage() {
         <div className="bg-gradient-to-r from-primary-600 to-primary-700 rounded-2xl p-6 h-32 animate-pulse" />
 
         {/* Stats Cards Skeleton */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 min-h-[104px]">
           <CardSkeleton />
           <CardSkeleton />
           <CardSkeleton />
@@ -274,9 +275,12 @@ export function DashboardPage() {
           <div className="h-16 w-16 rounded-full bg-white/20 flex items-center justify-center overflow-hidden border-2 border-white/30">
             {profile?.avatar_url ? (
               <img
-                src={profile.avatar_url}
-                alt={profile.full_name}
+                src={getOptimizedImageUrl(profile.avatar_url, 128, 128)}
+                alt={profile.full_name || 'User avatar'}
                 className="h-full w-full object-cover"
+                width={64}
+                height={64}
+                loading="eager"
               />
             ) : (
               <span className="text-2xl font-bold text-white">
@@ -298,7 +302,7 @@ export function DashboardPage() {
               <p className="text-lg font-bold text-red-800">
                 ৳{dueAmount.toFixed(0)} {t('dueAmount')}
               </p>
-              <p className="text-sm text-red-600">
+              <p className="text-sm text-red-700">
                 {t('dueAmountMsg')}
               </p>
             </div>
@@ -312,7 +316,7 @@ export function DashboardPage() {
       )}
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 min-h-[104px]">
         <Card>
           <CardContent className="flex items-center gap-4 py-4">
             <div className="h-12 w-12 bg-primary-100 rounded-xl flex items-center justify-center">
@@ -461,13 +465,13 @@ export function DashboardPage() {
 
               <div className="grid grid-cols-2 gap-2 text-xs text-gray-500">
                 <div>
-                  <span className="block text-gray-400">Total Deposits</span>
+                  <span className="block text-gray-500">Total Deposits</span>
                   <span className="font-medium text-gray-700">
                     {userBalance ? `৳${userBalance.total_deposits.toFixed(0)}` : '৳0'}
                   </span>
                 </div>
                 <div>
-                  <span className="block text-gray-400">Total Consumed</span>
+                  <span className="block text-gray-500">Total Consumed</span>
                   <span className="font-medium text-gray-700">
                     {userBalance ? `৳${userBalance.total_consumed.toFixed(0)}` : '৳0'}
                   </span>

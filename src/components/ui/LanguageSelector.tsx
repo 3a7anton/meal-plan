@@ -75,7 +75,7 @@ export function LanguageSelector({ variant = 'dropdown', className }: LanguageSe
           </option>
         ))}
       </select>
-      <Globe className="absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+      <Globe className="absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500 pointer-events-none" />
     </div>
   );
 }

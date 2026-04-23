@@ -310,7 +310,7 @@ export function MealHistoryPage() {
                       <tr key={item.id} className="hover:bg-gray-50">
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2">
-                            <Calendar className="h-4 w-4 text-gray-400" />
+                            <Calendar className="h-4 w-4 text-gray-500" />
                             <span className="text-sm text-gray-900">
                               {item.schedule?.scheduled_date 
                                 ? format(parseISO(item.schedule.scheduled_date), 'MMM d, yyyy')
@@ -318,7 +318,7 @@ export function MealHistoryPage() {
                             </span>
                           </div>
                           <div className="flex items-center gap-2 mt-1">
-                            <Clock className="h-4 w-4 text-gray-400" />
+                            <Clock className="h-4 w-4 text-gray-500" />
                             <span className="text-sm text-gray-600">
                               {item.schedule?.time_slot}
                             </span>
@@ -334,7 +334,7 @@ export function MealHistoryPage() {
                               />
                             ) : (
                               <div className="h-10 w-10 bg-gray-100 rounded-lg flex items-center justify-center">
-                                <UtensilsCrossed className="h-5 w-5 text-gray-400" />
+                                <UtensilsCrossed className="h-5 w-5 text-gray-500" />
                               </div>
                             )}
                             <div>
@@ -350,7 +350,7 @@ export function MealHistoryPage() {
                         {isAdmin && (
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-2">
-                              <User className="h-4 w-4 text-gray-400" />
+                              <User className="h-4 w-4 text-gray-500" />
                               <div>
                                 <p className="text-sm font-medium text-gray-900">
                                   {item.user?.full_name || t('unknown')}
