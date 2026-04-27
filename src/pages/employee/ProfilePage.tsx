@@ -62,7 +62,6 @@ export function ProfilePage() {
 
   const onSaveProfile = async (data: ProfileForm) => {
     setIsSavingProfile(true)
-    console.log('Updating profile with data:', data)
     const result = await updateProfile({
       full_name: data.full_name,
       phone: data.phone || null,

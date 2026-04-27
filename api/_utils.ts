@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
+import { getSecurityHeaders, getSecureCorsHeaders } from './_security'
 
 const supabaseUrl = process.env.VITE_SUPABASE_URL
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -9,8 +10,13 @@ if (!supabaseUrl || !supabaseServiceKey) {
 
 export const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey)
 
-const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'http://localhost:5173').split(',')
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'http://localhost:5173').split(',').map(o => o.trim())
+const isProduction = process.env.NODE_ENV === 'production'
 
+/**
+ * Get CORS origin with strict validation
+ * @deprecated Use getSecureCorsHeaders from _security.ts instead
+ */
 export function getCorsOrigin(origin: string | undefined): string {
   if (origin && allowedOrigins.includes(origin)) {
     return origin
@@ -25,7 +31,18 @@ export function verifyAuth(authHeader: string | null) {
   return authHeader.split('Bearer ')[1]
 }
 
+/**
+ * Get CORS headers with security improvements
+ * @deprecated Use getSecureCorsHeaders from _security.ts for new implementations
+ */
 export function corsHeaders(origin?: string) {
+  // Use secure CORS headers if available
+  const secureHeaders = getSecureCorsHeaders(origin, allowedOrigins)
+  if (secureHeaders) {
+    return secureHeaders
+  }
+
+  // Fallback to legacy behavior
   return {
     'Access-Control-Allow-Origin': getCorsOrigin(origin),
     'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
@@ -33,17 +50,30 @@ export function corsHeaders(origin?: string) {
   }
 }
 
-export function errorResponse(message: string, status: number = 400) {
+/**
+ * Get complete security headers including CORS and security headers
+ */
+export function getSecurityResponseHeaders(origin?: string): Record<string, string> {
+  const cors = corsHeaders(origin)
+  const security = getSecurityHeaders(isProduction)
+  
+  return {
+    ...cors,
+    ...security,
+  }
+}
+
+export function errorResponse(message: string, status: number = 400, origin?: string) {
   return new Response(JSON.stringify({ error: message }), {
     status,
-    headers: { 'Content-Type': 'application/json', ...corsHeaders() },
+    headers: { 'Content-Type': 'application/json', ...getSecurityResponseHeaders(origin) },
   })
 }
 
-export function successResponse(data: unknown, status: number = 200) {
+export function successResponse(data: unknown, status: number = 200, origin?: string) {
   return new Response(JSON.stringify(data), {
     status,
-    headers: { 'Content-Type': 'application/json', ...corsHeaders() },
+    headers: { 'Content-Type': 'application/json', ...getSecurityResponseHeaders(origin) },
   })
 }
 

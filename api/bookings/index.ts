@@ -40,14 +40,38 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     if (req.method === 'GET') {
-      // Fetch user's bookings
+      // Fetch user's bookings with specific columns
       const { data, error } = await supabase
         .from('bookings')
         .select(`
-          *,
+          id,
+          user_id,
+          menu_schedule_id,
+          status,
+          notes,
+          quantity,
+          booked_at,
+          updated_at,
           menu_schedule:menu_schedules (
-            *,
-            meal:meals (*)
+            id,
+            meal_id,
+            scheduled_date,
+            time_slot,
+            capacity,
+            is_available,
+            booking_time_limit,
+            price,
+            created_at,
+            meal:meals (
+              id,
+              name,
+              description,
+              meal_type,
+              image_url,
+              price,
+              is_active,
+              created_at
+            )
           )
         `)
         .eq('user_id', user.id)

@@ -1,6 +1,8 @@
 import { createClient } from '@supabase/supabase-js'
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { isAdmin as checkIsAdmin } from '../_utils'
+import { bookingHistoryQuerySchema, validateInput, maskEmail } from '../_validation'
+import { checkRateLimit, RATE_LIMITS, getClientIP, logSecurityEvent } from '../_security'
 
 const supabaseUrl = process.env.VITE_SUPABASE_URL
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -11,7 +13,7 @@ if (!supabaseUrl || !supabaseServiceKey) {
 
 const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
-const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'http://localhost:5173').split(',')
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'http://localhost:5173').split(',').map(o => o.trim())
 
 type UserRole = 'employee' | 'admin' | 'food_editor' | 'finance_editor'
 
@@ -34,39 +36,87 @@ async function verifyTokenWithRole(token: string): Promise<{ user: any, role: Us
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  // Handle CORS
   const origin = req.headers.origin
+  const clientIP = getClientIP(req)
+
+  // Handle CORS
   if (origin && allowedOrigins.includes(origin)) {
     res.setHeader('Access-Control-Allow-Origin', origin)
+  } else {
+    res.setHeader('Access-Control-Allow-Origin', allowedOrigins[0])
   }
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS')
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+  res.setHeader('X-Content-Type-Options', 'nosniff')
+  res.setHeader('X-Frame-Options', 'DENY')
 
   if (req.method === 'OPTIONS') {
     return res.status(200).end()
   }
 
   if (req.method !== 'GET') {
+    logSecurityEvent('SUSPICIOUS_ACTIVITY', req, {
+      severity: 'WARNING',
+      details: { reason: 'Invalid method', method: req.method }
+    })
     return res.status(405).json({ error: 'Method not allowed' })
+  }
+
+  // Rate limiting check
+  const rateLimitKey = `booking_history:${clientIP}`
+  const rateLimitResult = checkRateLimit(rateLimitKey, RATE_LIMITS.api)
+  if (!rateLimitResult.allowed) {
+    logSecurityEvent('RATE_LIMIT_EXCEEDED', req, {
+      severity: 'WARNING',
+      details: { reason: 'Booking history rate limit exceeded' }
+    })
+    return res.status(429).json({ 
+      error: 'Too many requests. Please try again later.',
+      retryAfter: Math.ceil((rateLimitResult.resetTime - Date.now()) / 1000)
+    })
   }
 
   try {
     // Verify token
     const token = req.headers.authorization?.replace('Bearer ', '')
     if (!token) {
+      logSecurityEvent('UNAUTHORIZED_ACCESS', req, {
+        severity: 'WARNING',
+        details: { reason: 'Missing authorization token' }
+      })
       return res.status(401).json({ error: 'No authorization token' })
     }
 
     const auth = await verifyTokenWithRole(token)
     if (!auth) {
+      logSecurityEvent('UNAUTHORIZED_ACCESS', req, {
+        severity: 'WARNING',
+        details: { reason: 'Invalid token' }
+      })
       return res.status(401).json({ error: 'Invalid token' })
     }
 
     const { user, role } = auth
     const isAdmin = checkIsAdmin(role)
 
-    // Get query parameters
-    const { userId, startDate, endDate, status } = req.query
+    // Validate query parameters
+    const validation = validateInput(bookingHistoryQuerySchema, {
+      userId: req.query.userId,
+      startDate: req.query.startDate,
+      endDate: req.query.endDate,
+      status: req.query.status,
+    })
+    if (!validation.success) {
+      return res.status(400).json({ 
+        error: 'Invalid query parameters',
+        details: validation.errors.map((e: { path: (string | number)[]; message: string }) => ({
+          field: e.path.join('.'),
+          message: e.message
+        }))
+      })
+    }
+
+    const { userId, startDate, endDate, status } = validation.data
 
     // Build the query
     let query = supabase
@@ -115,8 +165,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const { data: bookings, error } = await query
 
     if (error) {
+      // Log error but don't leak details to client
       console.error('Error fetching bookings:', error)
       return res.status(500).json({ error: 'Failed to fetch booking history' })
+    }
+
+    // Log successful access for admin viewing other users' data
+    if (isAdmin && userId && userId !== user.id) {
+      logSecurityEvent('ADMIN_ACTION', req, {
+        userId: user.id,
+        email: maskEmail(user.email || ''),
+        severity: 'INFO',
+        details: { 
+          action: 'VIEW_USER_BOOKING_HISTORY',
+          targetUserId: userId 
+        }
+      })
     }
     
     // Transform the data for the frontend

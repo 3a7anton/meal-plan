@@ -136,7 +136,6 @@ export function MenuManagementPage() {
   }
 
   const handleCreateSchedule = async (data: ScheduleFormInput) => {
-    console.log('Creating schedule with data:', data)
     try {
       const { error } = await supabase.from('menu_schedules').insert({
         meal_id: data.meal_id,

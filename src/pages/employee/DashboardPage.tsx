@@ -58,14 +58,11 @@ export function DashboardPage() {
       if (paymentError) throw paymentError
 
       if (paymentData) {
-        console.log('Found payment record:', paymentData)
         setDueAmount(paymentData.amount || 0)
       } else {
         // Calculate from confirmed bookings this month
         const startOfMonth = `${currentMonth}-01T00:00:00`
         const endOfMonth = `${currentMonth}-30T23:59:59`
-        
-        console.log('Fetching bookings for user:', userId, 'from', startOfMonth, 'to', endOfMonth)
         
         const { data: bookingsData, error: bookingsError } = await supabase
           .from('bookings')
@@ -86,18 +83,14 @@ export function DashboardPage() {
           throw bookingsError
         }
 
-        console.log('Raw bookings data:', bookingsData)
-
         const totalDue = (bookingsData || []).reduce((sum: number, booking: any) => {
           const schedulePrice = booking.menu_schedule?.price
           const mealPrice = booking.menu_schedule?.meal?.price || 0
           const price = schedulePrice ?? mealPrice // Use schedule price if set, otherwise meal price
           const quantity = booking.quantity || 1
-          console.log('Booking price:', price, 'quantity:', quantity, 'schedule:', schedulePrice, 'meal:', mealPrice)
           return sum + (price * quantity)
         }, 0)
 
-        console.log('Total due calculated:', totalDue)
         setDueAmount(totalDue)
       }
     } catch (error) {

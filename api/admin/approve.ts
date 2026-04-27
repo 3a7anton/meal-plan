@@ -1,5 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { createClient } from '@supabase/supabase-js'
+import { approveBookingSchema, validateInput, maskEmail } from '../_validation'
+import { checkRateLimit, RATE_LIMITS, getClientIP, logSecurityEvent } from '../_security'
 
 const supabaseUrl = process.env.VITE_SUPABASE_URL
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -34,25 +36,56 @@ function canManageBookings(role: UserRole): boolean {
   return role === 'admin'
 }
 
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'http://localhost:5173').split(',').map(o => o.trim())
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  // Handle CORS
-  const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'http://localhost:5173').split(',')
   const origin = req.headers.origin
-  res.setHeader('Access-Control-Allow-Origin', origin && allowedOrigins.includes(origin) ? origin : allowedOrigins[0])
+  const clientIP = getClientIP(req)
+
+  // Handle CORS
+  if (origin && allowedOrigins.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin)
+  } else {
+    res.setHeader('Access-Control-Allow-Origin', allowedOrigins[0])
+  }
   res.setHeader('Access-Control-Allow-Methods', 'PATCH, OPTIONS')
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+  res.setHeader('X-Content-Type-Options', 'nosniff')
+  res.setHeader('X-Frame-Options', 'DENY')
 
   if (req.method === 'OPTIONS') {
     return res.status(200).end()
   }
 
   if (req.method !== 'PATCH') {
+    logSecurityEvent('SUSPICIOUS_ACTIVITY', req, {
+      severity: 'WARNING',
+      details: { reason: 'Invalid method', method: req.method }
+    })
     return res.status(405).json({ error: 'Method not allowed' })
+  }
+
+  // Rate limiting check for sensitive admin operations
+  const rateLimitKey = `admin_approve:${clientIP}`
+  const rateLimitResult = checkRateLimit(rateLimitKey, RATE_LIMITS.sensitive)
+  if (!rateLimitResult.allowed) {
+    logSecurityEvent('RATE_LIMIT_EXCEEDED', req, {
+      severity: 'WARNING',
+      details: { reason: 'Booking approval rate limit exceeded' }
+    })
+    return res.status(429).json({ 
+      error: 'Too many requests. Please try again later.',
+      retryAfter: Math.ceil((rateLimitResult.resetTime - Date.now()) / 1000)
+    })
   }
 
   // Verify JWT token
   const authHeader = req.headers.authorization
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    logSecurityEvent('UNAUTHORIZED_ACCESS', req, {
+      severity: 'WARNING',
+      details: { reason: 'Missing or invalid authorization header' }
+    })
     return res.status(401).json({ error: 'Unauthorized' })
   }
 
@@ -62,14 +95,30 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Verify user can manage bookings
     const auth = await verifyTokenWithRole(token)
     if (!auth || !canManageBookings(auth.role)) {
+      logSecurityEvent('FORBIDDEN_ACCESS', req, {
+        userId: auth?.user?.id,
+        email: maskEmail(auth?.user?.email || ''),
+        severity: 'WARNING',
+        details: { reason: 'Insufficient permissions for booking approval', role: auth?.role }
+      })
       return res.status(403).json({ error: 'Forbidden: Booking management access required' })
     }
 
-    const { booking_id } = req.body
+    const { user } = auth
 
-    if (!booking_id) {
-      return res.status(400).json({ error: 'booking_id is required' })
+    // Validate input
+    const validation = validateInput(approveBookingSchema, req.body)
+    if (!validation.success) {
+      return res.status(400).json({ 
+        error: 'Invalid input',
+        details: validation.errors.map((e: { path: (string | number)[]; message: string }) => ({
+          field: e.path.join('.'),
+          message: e.message
+        }))
+      })
     }
+
+    const { booking_id } = validation.data
 
     // Get booking
     const { data: booking, error: bookingError } = await supabase
@@ -99,9 +148,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       message: `Your meal booking has been confirmed!`,
     })
 
+    // Log admin action
+    logSecurityEvent('ADMIN_ACTION', req, {
+      userId: user.id,
+      email: maskEmail(user.email || ''),
+      severity: 'INFO',
+      details: { 
+        action: 'BOOKING_APPROVED',
+        bookingId: booking_id,
+        targetUserId: booking.user_id
+      }
+    })
+
     return res.status(200).json(updatedBooking)
   } catch (error) {
-    console.error('Error:', error)
+    // Log error but don't leak details to client
+    console.error('Booking approval error:', error)
     return res.status(500).json({ error: 'Internal server error' })
   }
 }
