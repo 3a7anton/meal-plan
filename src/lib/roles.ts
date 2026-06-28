@@ -2,8 +2,10 @@ import type { Profile } from '../types'
 
 export type UserRole = Profile['role']
 
-// Role hierarchy - higher index = more permissions
-const ROLE_HIERARCHY: UserRole[] = ['employee', 'finance_editor', 'food_editor', 'admin']
+// Role hierarchy for employee/admin chain — student is intentionally excluded
+// so hasMinimumRole() doesn't leak student access into employee/admin flows
+const ROLE_HIERARCHY: Extract<UserRole, 'employee' | 'finance_editor' | 'food_editor' | 'admin'>[] =
+  ['employee', 'finance_editor', 'food_editor', 'admin']
 
 /**
  * Check if a user has a specific role
@@ -11,6 +13,14 @@ const ROLE_HIERARCHY: UserRole[] = ['employee', 'finance_editor', 'food_editor',
 export function hasRole(profile: Profile | null, role: UserRole): boolean {
   if (!profile) return false
   return profile.role === role
+}
+
+/**
+ * Check if a user is a student
+ */
+export function isStudent(profile: Profile | null): boolean {
+  if (!profile) return false
+  return profile.role === 'student'
 }
 
 /**
@@ -93,10 +103,41 @@ export function hasMinimumRole(profile: Profile | null, requiredRole: UserRole):
  */
 export function getRoleDisplayName(role: UserRole): string {
   const displayNames: Record<UserRole, string> = {
-    'employee': 'Employee',
-    'admin': 'Admin',
-    'food_editor': 'Food Editor',
-    'finance_editor': 'Finance Editor',
+    'employee':        'Employee',
+    'admin':           'Admin',
+    'food_editor':     'Food Editor',
+    'finance_editor':  'Finance Editor',
+    'student':         'Student',
   }
   return displayNames[role] || role
+}
+
+// ─── Student permission helpers ───────────────────────────────────────────────
+
+/** Students can browse the tiffin menu for tomorrow */
+export function canViewStudentMenu(profile: Profile | null): boolean {
+  return isStudent(profile)
+}
+
+/** Students can create a tiffin order */
+export function canCreateStudentOrder(profile: Profile | null): boolean {
+  return isStudent(profile)
+}
+
+/** Students can initiate SSLCommerz payment */
+export function canMakePayment(profile: Profile | null): boolean {
+  return isStudent(profile)
+}
+
+/**
+ * Returns the default landing path for a given role after login.
+ * admin/food_editor/finance_editor → /admin
+ * employee → /dashboard
+ * student  → /student/dashboard
+ */
+export function getRoleHomePath(profile: Profile | null): string {
+  if (!profile) return '/dashboard'
+  if (profile.role === 'student') return '/student/dashboard'
+  if (isAdmin(profile)) return '/admin'
+  return '/dashboard'
 }

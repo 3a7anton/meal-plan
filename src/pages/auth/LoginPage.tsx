@@ -5,6 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { UtensilsCrossed, Clock } from 'lucide-react'
 import { useAuthStore } from '../../store'
+import { getRoleHomePath } from '../../lib/roles'
 import { Card, CardContent, Button, Input, LanguageSelector } from '../../components/ui'
 import { useTranslation } from '../../hooks/useTranslation'
 import toast from 'react-hot-toast'
@@ -48,11 +49,7 @@ export function LoginPage() {
       toast.success(t('welcomeBack'))
       setTimeout(() => {
         const currentProfile = useAuthStore.getState().profile
-        if (currentProfile?.role === 'admin') {
-          navigate('/admin')
-        } else {
-          navigate('/dashboard')
-        }
+        navigate(getRoleHomePath(currentProfile))
       }, 500)
     }
   }

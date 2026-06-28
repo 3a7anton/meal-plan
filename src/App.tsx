@@ -4,7 +4,9 @@ import { Toaster } from 'react-hot-toast'
 import { useAuthStore } from './store'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { Layout } from './components/employee'
+import { StudentLayout } from './components/student/StudentLayout'
 import { PageLoader } from './components/PageLoader'
+import { getRoleHomePath } from './lib/roles'
 
 // Auth Pages - lazy loaded
 const LoginPage = lazy(() => import('./pages/auth/LoginPage'))
@@ -19,15 +21,29 @@ const BookingsPage = lazy(() => import('./pages/employee/BookingsPage'))
 const ProfilePage = lazy(() => import('./pages/employee/ProfilePage'))
 
 // Admin Pages - lazy loaded (these are heavy with charts/tables)
-const AdminDashboardPage = lazy(() => import('./pages/admin/AdminDashboardPage'))
-const MenuManagementPage = lazy(() => import('./pages/admin/MenuManagementPage'))
+const AdminDashboardPage    = lazy(() => import('./pages/admin/AdminDashboardPage'))
+const MenuManagementPage    = lazy(() => import('./pages/admin/MenuManagementPage'))
 const BookingManagementPage = lazy(() => import('./pages/admin/BookingManagementPage'))
-const UserManagementPage = lazy(() => import('./pages/admin/UserManagementPage'))
-const ReportsPage = lazy(() => import('./pages/admin/ReportsPage'))
-const PaymentsPage = lazy(() => import('./pages/admin/PaymentsPage'))
+const UserManagementPage    = lazy(() => import('./pages/admin/UserManagementPage'))
+const ReportsPage           = lazy(() => import('./pages/admin/ReportsPage'))
+const PaymentsPage          = lazy(() => import('./pages/admin/PaymentsPage'))
+const StudentTiffinPage     = lazy(() => import('./pages/admin/StudentTiffinPage'))
 
 // Shared Pages - lazy loaded
 const MealHistoryPage = lazy(() => import('./pages/MealHistoryPage'))
+
+// Student Pages - lazy loaded
+const StudentDashboardPage = lazy(() => import('./pages/student/StudentDashboardPage'))
+const StudentMenuPage      = lazy(() => import('./pages/student/StudentMenuPage'))
+const StudentOrdersPage    = lazy(() => import('./pages/student/StudentOrdersPage'))
+const StudentPaymentPage   = lazy(() => import('./pages/student/StudentPaymentPage'))
+
+// Smart root redirect — sends each role to the right home page
+function RootRedirect() {
+  const { profile, isInitialized } = useAuthStore()
+  if (!isInitialized) return <PageLoader />
+  return <Navigate to={getRoleHomePath(profile)} replace />
+}
 
 function App() {
   const { initialize } = useAuthStore()
@@ -81,7 +97,8 @@ function App() {
               </ProtectedRoute>
             }
           >
-            <Route path="/admin/menu" element={<MenuManagementPage />} />
+            <Route path="/admin/menu"           element={<MenuManagementPage />} />
+            <Route path="/admin/student-tiffin" element={<StudentTiffinPage />} />
           </Route>
 
           {/* Booking Management - Main Admins and Admins only */}
@@ -128,9 +145,23 @@ function App() {
             <Route path="/admin/meal-history" element={<MealHistoryPage />} />
           </Route>
 
+          {/* Student Routes */}
+          <Route
+            element={
+              <ProtectedRoute requireStudent>
+                <StudentLayout />
+              </ProtectedRoute>
+            }
+          >
+            <Route path="/student/dashboard" element={<StudentDashboardPage />} />
+            <Route path="/student/menu"      element={<StudentMenuPage />} />
+            <Route path="/student/orders"    element={<StudentOrdersPage />} />
+            <Route path="/student/payment"   element={<StudentPaymentPage />} />
+          </Route>
+
           {/* Redirects */}
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
-          <Route path="*" element={<Navigate to="/dashboard" replace />} />
+          <Route path="/" element={<RootRedirect />} />
+          <Route path="*" element={<RootRedirect />} />
         </Routes>
       </Suspense>
       

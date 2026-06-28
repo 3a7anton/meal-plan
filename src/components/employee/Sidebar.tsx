@@ -11,6 +11,7 @@ import {
   ChevronRight,
   UserCircle,
   History,
+  GraduationCap,
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { useAuthStore, useUIStore } from '../../store'
@@ -77,6 +78,11 @@ export function Sidebar({ isAdmin = false }: SidebarProps) {
     
     // Meal History is available to all admins
     links.push({ to: '/admin/meal-history', icon: History, label: t('mealHistory') })
+    
+    // Student Tiffin Management — admins and food editors
+    if (canManageMeals(profile)) {
+      links.push({ to: '/admin/student-tiffin', icon: GraduationCap, label: 'Student Tiffin' })
+    }
     
     return links
   }

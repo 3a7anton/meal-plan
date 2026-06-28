@@ -17,7 +17,7 @@ export interface Database {
           phone: string | null
           avatar_url: string | null
           department: string | null
-          role: 'employee' | 'admin' | 'food_editor' | 'finance_editor'
+          role: 'employee' | 'admin' | 'food_editor' | 'finance_editor' | 'student'
           dietary_preferences: string[] | null
           is_active: boolean
           created_at: string
@@ -29,7 +29,7 @@ export interface Database {
           phone?: string | null
           avatar_url?: string | null
           department?: string | null
-          role?: 'employee' | 'admin' | 'food_editor' | 'finance_editor'
+          role?: 'employee' | 'admin' | 'food_editor' | 'finance_editor' | 'student'
           dietary_preferences?: string[] | null
           is_active?: boolean
           created_at?: string
@@ -41,7 +41,7 @@ export interface Database {
           phone?: string | null
           avatar_url?: string | null
           department?: string | null
-          role?: 'employee' | 'admin' | 'food_editor' | 'finance_editor'
+          role?: 'employee' | 'admin' | 'food_editor' | 'finance_editor' | 'student'
           dietary_preferences?: string[] | null
           is_active?: boolean
           created_at?: string
@@ -422,7 +422,7 @@ export interface Database {
       booking_status: 'pending' | 'confirmed' | 'denied' | 'cancelled'
       meal_type: 'breakfast' | 'lunch'
       notification_type: 'booking_confirmed' | 'booking_denied' | 'conflict' | 'reminder' | 'cancelled'
-      user_role: 'employee' | 'admin' | 'food_editor' | 'finance_editor'
+      user_role: 'employee' | 'admin' | 'food_editor' | 'finance_editor' | 'student'
     }
     CompositeTypes: {
       [_ in never]: never

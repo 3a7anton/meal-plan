@@ -27,6 +27,8 @@ interface SignUpData {
   fullName: string
   phone?: string
   department?: string
+  role?: 'employee' | 'student'
+  studentId?: string
 }
 
 let authSubscription: { unsubscribe: () => void } | null = null
@@ -127,6 +129,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             full_name: data.fullName,
             phone: data.phone || null,
             department: data.department || null,
+            role: data.role || 'employee',
+            student_id: data.studentId || null,
           },
         },
       })

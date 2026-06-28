@@ -1,7 +1,7 @@
 import { Navigate, useLocation } from 'react-router-dom'
 import { useAuthStore } from '../store'
 import { Loading } from './ui'
-import { isAdmin, canManageMeals, canManageFinance, canManageUsers, canManageBookings } from '../lib/roles'
+import { isAdmin, canManageMeals, canManageFinance, canManageUsers, canManageBookings, isStudent } from '../lib/roles'
 
 interface ProtectedRouteProps {
   children: React.ReactNode
@@ -15,6 +15,7 @@ interface ProtectedRouteProps {
   requireFinanceManagement?: boolean
   requireUserManagement?: boolean
   requireBookingManagement?: boolean
+  requireStudent?: boolean
 }
 
 export function ProtectedRoute({ 
@@ -28,6 +29,7 @@ export function ProtectedRoute({
   requireFinanceManagement,
   requireUserManagement,
   requireBookingManagement,
+  requireStudent,
 }: ProtectedRouteProps) {
   const location = useLocation()
   const { user, profile, isInitialized } = useAuthStore()
@@ -71,7 +73,8 @@ export function ProtectedRoute({
 
     // Check new granular permissions - fallback profile is employee, so only allow employee routes
     if (requireAnyAdmin || requireMainAdmin || requireFoodEditor || requireFinanceEditor ||
-        requireMealManagement || requireFinanceManagement || requireUserManagement || requireBookingManagement) {
+        requireMealManagement || requireFinanceManagement || requireUserManagement || requireBookingManagement ||
+        requireStudent) {
       return <Navigate to="/dashboard" replace />
     }
 
@@ -80,6 +83,10 @@ export function ProtectedRoute({
 
   // Legacy role check (for backward compatibility)
   if (requiredRole && profile!.role !== requiredRole) {
+    // Students trying to access non-student routes — redirect to student portal
+    if (isStudent(profile)) {
+      return <Navigate to="/student/dashboard" replace />
+    }
     // Admins trying to access employee routes - allow
     if (requiredRole === 'employee' && isAdmin(profile)) {
       return <>{children}</>
@@ -92,6 +99,11 @@ export function ProtectedRoute({
     if (requiredRole === 'admin' && isAdmin(profile)) {
       return <>{children}</>
     }
+  }
+
+  // Students must not reach admin or standard employee routes at all
+  if (!requireStudent && isStudent(profile)) {
+    return <Navigate to="/student/dashboard" replace />
   }
 
   // New granular permission checks
@@ -124,6 +136,10 @@ export function ProtectedRoute({
   }
 
   if (requireBookingManagement && !canManageBookings(profile)) {
+    return <Navigate to="/dashboard" replace />
+  }
+
+  if (requireStudent && profile!.role !== 'student') {
     return <Navigate to="/dashboard" replace />
   }
 

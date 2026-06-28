@@ -4,3 +4,5 @@ export { useNotificationStore } from './notificationStore'
 export { useSettingsStore, isBookingAllowed, isCancellationAllowed, getBookingTimeRemaining } from './settingsStore'
 export { useUIStore } from './uiStore'
 export { useLanguageStore } from './languageStore'
+export { useStudentStore } from './studentStore'
+
