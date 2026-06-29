@@ -125,7 +125,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Fetch the order — must belong to this student and be in 'pending' status
     const { data: order, error: orderError } = await supabase
       .from('student_orders')
-      .select('id, student_id, total_amount, status, meal_date')
+      .select(`
+        id, student_id, total_amount, status, meal_date,
+        tiffin_menu:student_tiffin_menu!student_orders_tiffin_menu_id_fkey(
+          meal:meals!student_tiffin_menu_meal_id_fkey(name)
+        )
+      `)
       .eq('id', order_id)
       .eq('student_id', user.id)
       .single()
@@ -226,6 +231,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       : await supabase.from('student_payments').insert(paymentRecord)
 
     if (paymentError) throw paymentError
+
+    // Insert pending payment notification for admins
+    const mealName = (order.tiffin_menu as any)?.meal?.name || 'Meal'
+    const studentName = profile.full_name || 'Student'
+
+    const { data: admins } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('role', 'admin')
+
+    if (admins && admins.length > 0) {
+      const pendingNotifications = admins.map(a => ({
+        user_id: a.id,
+        type: 'payment_pending',
+        message: `${studentName} initiated payment of BDT ${order.total_amount} for ${mealName}.`
+      }))
+      await supabase.from('notifications').insert(pendingNotifications)
+    }
 
     logSecurityEvent('ADMIN_ACTION', req, {
       userId: user.id,

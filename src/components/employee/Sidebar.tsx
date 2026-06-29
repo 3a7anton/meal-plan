@@ -12,6 +12,7 @@ import {
   UserCircle,
   History,
   GraduationCap,
+  Repeat,
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { useAuthStore, useUIStore } from '../../store'
@@ -82,6 +83,7 @@ export function Sidebar({ isAdmin = false }: SidebarProps) {
     // Student Tiffin Management — admins and food editors
     if (canManageMeals(profile)) {
       links.push({ to: '/admin/student-tiffin', icon: GraduationCap, label: 'Student Tiffin' })
+      links.push({ to: '/admin/routines', icon: Repeat, label: 'Meal Routines' })
     }
     
     return links

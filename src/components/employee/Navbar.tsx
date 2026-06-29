@@ -1,5 +1,7 @@
 import { User, Menu, X } from 'lucide-react'
 import { useAuthStore, useUIStore } from '../../store'
+import { getRoleBadgeClasses, getRoleDisplayName } from '../../lib/roles'
+import { cn } from '../../lib/utils'
 import { NotificationBell } from './NotificationBell'
 
 export function Navbar() {
@@ -31,7 +33,17 @@ export function Navbar() {
             </div>
             <div className="hidden sm:block">
               <p className="text-sm font-medium text-gray-900">{profile?.full_name}</p>
-              <p className="text-xs text-gray-500 capitalize">{profile?.role}</p>
+              <span
+                className={cn(
+                  'inline-flex items-center text-xs font-medium px-2 py-0.5 rounded-full',
+                  profile?.role === 'student' ? 'bg-amber-100 text-amber-700' :
+                  profile?.role === 'employee' ? 'bg-blue-100 text-blue-700' :
+                  profile?.role === 'admin' ? 'bg-red-100 text-red-700' :
+                  getRoleBadgeClasses(profile?.role)
+                )}
+              >
+                {profile?.role === 'student' ? 'Student' : getRoleDisplayName(profile?.role)}
+              </span>
             </div>
           </div>
         </div>

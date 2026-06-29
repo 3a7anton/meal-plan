@@ -103,15 +103,58 @@ export function hasMinimumRole(profile: Profile | null, requiredRole: UserRole):
 /**
  * Get the role display name
  */
-export function getRoleDisplayName(role: UserRole): string {
+export function getRoleDisplayName(role: UserRole | null | undefined): string {
+  if (!role) return 'User'
   const displayNames: Record<UserRole, string> = {
-    'employee':        'Employee',
-    'admin':           'Admin',
-    'food_editor':     'Food Editor',
-    'finance_editor':  'Finance Editor',
-    'student':         'Student',
+    employee: 'Employee',
+    admin: 'Admin',
+    food_editor: 'Food Editor',
+    finance_editor: 'Finance Editor',
+    student: 'Student',
   }
-  return displayNames[role] || role
+  return displayNames[role] ?? role
+}
+
+const VALID_ROLES: UserRole[] = ['employee', 'admin', 'food_editor', 'finance_editor', 'student']
+
+/**
+ * Resolve the user's role from the profiles row and auth metadata.
+ * Prefers metadata when signup stored 'student' but the DB trigger still wrote 'employee'.
+ */
+export function resolveProfileRole(
+  dbRole: string | null | undefined,
+  metadataRole: unknown
+): UserRole {
+  const normalizedDbRole =
+    dbRole && VALID_ROLES.includes(dbRole as UserRole) ? (dbRole as UserRole) : null
+  const normalizedMetaRole =
+    typeof metadataRole === 'string' && VALID_ROLES.includes(metadataRole as UserRole)
+      ? (metadataRole as UserRole)
+      : null
+
+  if (normalizedMetaRole === 'student' && normalizedDbRole === 'employee') {
+    return 'student'
+  }
+
+  return normalizedDbRole ?? normalizedMetaRole ?? 'employee'
+}
+
+/** Tailwind classes for role badges in nav/profile UI */
+export function getRoleBadgeClasses(role: UserRole | null | undefined): string {
+  switch (role) {
+    case 'student':
+      return 'bg-amber-100 text-amber-700'
+    case 'employee':
+      return 'bg-blue-100 text-blue-700'
+    case 'admin':
+      return 'bg-red-100 text-red-700'
+    case 'food_editor':
+      return 'bg-green-100 text-green-700'
+    case 'finance_editor':
+      return 'bg-indigo-100 text-indigo-700'
+    default:
+      return 'bg-gray-100 text-gray-700'
+  }
 }
 
 // ─── Student permission helpers ───────────────────────────────────────────────

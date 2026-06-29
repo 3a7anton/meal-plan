@@ -23,6 +23,18 @@ export function BookingManagementPage() {
   const [notes, setNotes] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
 
+  // Guest Meal Modal state
+  const [isGuestModalOpen, setIsGuestModalOpen] = useState(false)
+  const [guestForm, setGuestForm] = useState({
+    guest_name: '',
+    department: 'School',
+    meal_date: new Date().toISOString().split('T')[0],
+    menu_schedule_id: '',
+    quantity: 1,
+    notes: ''
+  })
+  const [isSubmittingGuest, setIsSubmittingGuest] = useState(false)
+
   useEffect(() => {
     fetchAllBookings()
   }, [])
@@ -58,6 +70,72 @@ export function BookingManagementPage() {
     } catch (err) {
       console.error(err)
       toast.error('Failed to load data for manual order')
+    }
+  }
+
+  const openGuestModal = async () => {
+    setIsGuestModalOpen(true)
+    try {
+      const today = new Date().toISOString().split('T')[0]
+      const { data: schedulesData } = await supabase
+        .from('menu_schedules')
+        .select(`
+          id,
+          scheduled_date,
+          time_slot,
+          meal:meals (id, name)
+        `)
+        .gte('scheduled_date', today)
+        .order('scheduled_date')
+        .order('time_slot')
+
+      if (schedulesData) setTodaySchedules(schedulesData)
+    } catch (err) {
+      console.error(err)
+      toast.error('Failed to load schedules for guest meal')
+    }
+  }
+
+  const handleGuestMealSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!guestForm.guest_name || !guestForm.menu_schedule_id) return toast.error('Required fields missing')
+
+    setIsSubmittingGuest(true)
+    try {
+      const schedule = todaySchedules.find(s => s.id === guestForm.menu_schedule_id)
+      if (!schedule) throw new Error('Schedule not found')
+
+      const payload = {
+        guest_name: guestForm.guest_name,
+        department: guestForm.department,
+        meal_id: schedule.meal?.id,
+        menu_schedule_id: schedule.id,
+        meal_date: schedule.scheduled_date,
+        time_slot: schedule.time_slot,
+        quantity: guestForm.quantity,
+        notes: guestForm.notes
+      }
+
+      const { data: { session } } = await supabase.auth.getSession()
+      const response = await fetch('/api/admin/guest-meals', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token}`
+        },
+        body: JSON.stringify(payload)
+      })
+
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.error || 'Failed to add guest meal')
+
+      toast.success(`Guest meal added for ${guestForm.guest_name}`)
+      setIsGuestModalOpen(false)
+      setGuestForm({ ...guestForm, guest_name: '', notes: '', quantity: 1 })
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to add guest meal')
+    } finally {
+      setIsSubmittingGuest(false)
     }
   }
 
@@ -194,6 +272,10 @@ export function BookingManagementPage() {
           <p className="text-gray-500">Manage all meal bookings</p>
         </div>
         <div className="flex gap-2">
+          <Button variant="outline" onClick={openGuestModal} className="border-purple-200 text-purple-700 hover:bg-purple-50">
+            <Plus className="h-4 w-4 mr-2" />
+            Add Guest Meal
+          </Button>
           <Button variant="primary" onClick={openManualModal}>
             <Plus className="h-4 w-4 mr-2" />
             Manual Order
@@ -407,6 +489,96 @@ export function BookingManagementPage() {
               disabled={isSubmitting || !selectedUser || !selectedSchedule}
             >
               {isSubmitting ? 'Creating...' : 'Create Order'}
+            </Button>
+          </div>
+        </form>
+      </Modal>
+
+      <Modal
+        isOpen={isGuestModalOpen}
+        onClose={() => !isSubmittingGuest && setIsGuestModalOpen(false)}
+        title="Add Guest Meal"
+      >
+        <form onSubmit={handleGuestMealSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Guest Name</label>
+            <Input
+              value={guestForm.guest_name}
+              onChange={(e) => setGuestForm({ ...guestForm, guest_name: e.target.value })}
+              required
+              placeholder="e.g. John Doe (Visitor)"
+              className="w-full"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Department</label>
+            <Select
+              options={[
+                { value: 'School', label: 'School' },
+                { value: 'Educare', label: 'Educare' }
+              ]}
+              value={guestForm.department}
+              onChange={(e) => setGuestForm({ ...guestForm, department: e.target.value })}
+              className="w-full"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Menu Schedule</label>
+            <Select
+              options={[
+                { value: '', label: 'Select a schedule...' },
+                ...todaySchedules.map(s => ({ 
+                  value: s.id, 
+                  label: `${s.meal?.name || 'Meal'} on ${format(new Date(s.scheduled_date), 'MMM d')} at ${s.time_slot}` 
+                }))
+              ]}
+              value={guestForm.menu_schedule_id}
+              onChange={(e) => setGuestForm({ ...guestForm, menu_schedule_id: e.target.value })}
+              required
+              className="w-full"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Quantity</label>
+            <Input
+              type="number"
+              min="1"
+              value={guestForm.quantity}
+              onChange={(e) => setGuestForm({ ...guestForm, quantity: Number(e.target.value) || 1 })}
+              required
+              className="w-full"
+            />
+            <p className="text-xs text-gray-500 mt-1">Guest meals ignore capacity limits.</p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Notes (Optional)</label>
+            <Input
+              value={guestForm.notes}
+              onChange={(e) => setGuestForm({ ...guestForm, notes: e.target.value })}
+              placeholder="e.g. VIP guest"
+              className="w-full"
+            />
+          </div>
+
+          <div className="flex justify-end gap-3 mt-6">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => setIsGuestModalOpen(false)}
+              disabled={isSubmittingGuest}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              variant="primary"
+              disabled={isSubmittingGuest || !guestForm.guest_name || !guestForm.menu_schedule_id}
+            >
+              {isSubmittingGuest ? 'Confirming...' : 'Confirm Guest Meal'}
             </Button>
           </div>
         </form>

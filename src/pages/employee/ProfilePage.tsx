@@ -1,10 +1,12 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { User, Mail, Phone, Building2, Lock, Save } from 'lucide-react'
+import { User, Mail, Phone, Building2, Lock, Save, Wallet, History } from 'lucide-react'
 import { useAuthStore } from '../../store'
-import { Card, CardContent, CardHeader, CardTitle, Button, Input, ImageUpload } from '../../components/ui'
+import { Card, CardContent, CardHeader, CardTitle, Button, Input, ImageUpload, Badge } from '../../components/ui'
+import { Modal } from '../../components/ui/Modal'
+import { format } from 'date-fns'
 import { useTranslation } from '../../hooks/useTranslation'
 import { supabase } from '../../lib/supabaseClient'
 import toast from 'react-hot-toast'
@@ -38,6 +40,63 @@ export function ProfilePage() {
   const [isSavingProfile, setIsSavingProfile] = useState(false)
   const [isSavingEmail, setIsSavingEmail] = useState(false)
   const [isSavingPassword, setIsSavingPassword] = useState(false)
+
+  // Balance & Cash Request state
+  const [transactions, setTransactions] = useState<any[]>([])
+  const [cashRequestModalOpen, setCashRequestModalOpen] = useState(false)
+  const [requestAmount, setRequestAmount] = useState('')
+  const [requestNotes, setRequestNotes] = useState('')
+  const [isRequestingCash, setIsRequestingCash] = useState(false)
+
+  useEffect(() => {
+    if (user?.id) {
+      fetchTransactions()
+    }
+  }, [user?.id])
+
+  const fetchTransactions = async () => {
+    if (!user) return
+    const { data, error } = await supabase
+      .from('advance_payments')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(10)
+    
+    if (!error && data) {
+      setTransactions(data)
+    }
+  }
+
+  const handleCashRequest = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!user || !requestAmount) return
+    
+    const amount = Number(requestAmount)
+    if (isNaN(amount) || amount <= 0) return
+
+    setIsRequestingCash(true)
+    try {
+      const { error } = await supabase
+        .from('cash_payment_requests')
+        .insert({
+          user_id: user.id,
+          amount,
+          notes: requestNotes
+        })
+      
+      if (error) throw error
+      
+      toast.success('Cash request submitted successfully.')
+      setCashRequestModalOpen(false)
+      setRequestAmount('')
+      setRequestNotes('')
+    } catch (err: any) {
+      toast.error('Failed to submit cash request: ' + err.message)
+    } finally {
+      setIsRequestingCash(false)
+    }
+  }
 
   const profileForm = useForm<ProfileForm>({
     resolver: zodResolver(profileSchema),
@@ -135,6 +194,52 @@ export function ProfilePage() {
         </CardContent>
       </Card>
 
+      {/* Balance Card */}
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle className="flex items-center gap-2">
+            <Wallet className="h-5 w-5 text-emerald-600" /> My Balance
+          </CardTitle>
+          <Button onClick={() => setCashRequestModalOpen(true)} className="bg-emerald-600 hover:bg-emerald-700">
+            Request Cash
+          </Button>
+        </CardHeader>
+        <CardContent>
+          <div className="bg-emerald-50 rounded-xl p-6 mb-6 text-center border border-emerald-100">
+            <p className="text-emerald-800 text-sm font-medium mb-1">Current Balance</p>
+            <p className="text-4xl font-bold text-emerald-600">
+              ৳{Number(profile?.balance || 0).toFixed(0)}
+            </p>
+          </div>
+
+          <div className="space-y-4">
+            <h3 className="font-medium text-gray-900 flex items-center gap-2">
+              <History className="h-4 w-4" /> Recent Transactions
+            </h3>
+            {transactions.length === 0 ? (
+              <p className="text-sm text-gray-500 text-center py-4">No recent transactions</p>
+            ) : (
+              <div className="space-y-3">
+                {transactions.map((tx) => (
+                  <div key={tx.id} className="flex items-center justify-between p-3 rounded-lg border border-gray-100 bg-gray-50">
+                    <div>
+                      <p className="text-sm font-medium text-gray-900 capitalize">{tx.type.replace('_', ' ')}</p>
+                      <p className="text-xs text-gray-500">{format(new Date(tx.created_at), 'MMM d, yyyy h:mm a')}</p>
+                      {tx.description && <p className="text-xs text-gray-400 mt-0.5">{tx.description}</p>}
+                    </div>
+                    <div className="text-right">
+                      <span className={`text-sm font-bold ${Number(tx.amount) > 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                        {Number(tx.amount) > 0 ? '+' : ''}{Number(tx.amount).toFixed(0)}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Profile Info Form */}
       <Card>
         <CardHeader>
@@ -166,12 +271,16 @@ export function ProfilePage() {
             </div>
 
             <div className="relative">
-              <Input
-                label={t('department')}
-                placeholder="Engineering, HR, Finance..."
-                error={profileForm.formState.errors.department?.message}
-                {...profileForm.register('department')}
-              />
+              <Select
+                  label={t('department')}
+                  options={[
+                    { value: '',        label: t('selectDepartment') },
+                    { value: 'School',  label: 'School' },
+                    { value: 'Educare', label: 'Educare' },
+                  ]}
+                  error={profileForm.formState.errors.department?.message}
+                  {...profileForm.register('department')}
+                />
               <Building2 className="absolute right-3 top-9 h-4 w-4 text-gray-500" />
             </div>
 
@@ -249,6 +358,60 @@ export function ProfilePage() {
           </form>
         </CardContent>
       </Card>
+
+      <Modal
+        isOpen={cashRequestModalOpen}
+        onClose={() => !isRequestingCash && setCashRequestModalOpen(false)}
+        title="Request Cash"
+      >
+        <form onSubmit={handleCashRequest} className="space-y-4">
+          <p className="text-sm text-gray-600">
+            Submit a request for cash payment. This request will be reviewed by administrators.
+          </p>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Amount (৳)
+            </label>
+            <Input
+              type="number"
+              min="1"
+              required
+              value={requestAmount}
+              onChange={(e) => setRequestAmount(e.target.value)}
+              placeholder="e.g. 500"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Notes (Optional)
+            </label>
+            <Input
+              type="text"
+              value={requestNotes}
+              onChange={(e) => setRequestNotes(e.target.value)}
+              placeholder="Reason for request..."
+            />
+          </div>
+          <div className="flex justify-end gap-3 pt-4 border-t">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setCashRequestModalOpen(false)}
+              disabled={isRequestingCash}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              variant="primary"
+              disabled={isRequestingCash || !requestAmount}
+              className="bg-emerald-600 hover:bg-emerald-700"
+            >
+              {isRequestingCash ? 'Submitting...' : 'Submit Request'}
+            </Button>
+          </div>
+        </form>
+      </Modal>
     </div>
   )
 }

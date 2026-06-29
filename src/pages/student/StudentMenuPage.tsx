@@ -13,6 +13,7 @@ import { useStudentStore } from '../../store/studentStore'
 import type { TiffinMenuItem } from '../../store/studentStore'
 import { Card, CardContent, Button, Badge, CardSkeleton } from '../../components/ui'
 import toast from 'react-hot-toast'
+import { getMealDeadline, formatTime } from '../../lib/utils'
 
 // ─── Meal Card ────────────────────────────────────────────────────────────────
 
@@ -24,14 +25,22 @@ interface TiffinCardProps {
 }
 
 function TiffinCard({ item, isOrdered, onOrder, isOrdering }: TiffinCardProps) {
-  const { meal } = item
+  const { meal, scheduled_date, time_slot, ordering_deadline_hours } = item
   const capacityLeft = item.capacity // We could subtract booked count if the API returned it
+
+  const deadline = getMealDeadline(scheduled_date, time_slot, ordering_deadline_hours || 1)
+  const isPastDeadline = new Date() > deadline
+  
+  // Format the deadline cleanly, e.g. "8:00 PM"
+  let deadlineStr = deadline.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+  // If deadline is not today, add "yesterday" or similar context? The user said just time.
+  // We can just use the time.
 
   return (
     <Card
       className={`transition-all duration-200 ${
         isOrdered ? 'border-green-300 bg-green-50/50' : 'hover:border-amber-300 hover:shadow-md'
-      }`}
+      } ${isPastDeadline ? 'opacity-70' : ''}`}
     >
       <CardContent className="p-5">
         {/* Meal type chip + time slot */}
@@ -39,7 +48,7 @@ function TiffinCard({ item, isOrdered, onOrder, isOrdering }: TiffinCardProps) {
           <div className="flex items-center gap-2">
             <span className="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">
               <Clock className="h-3 w-3" />
-              {item.time_slot}
+              {formatTime(item.time_slot)}
             </span>
             {meal?.meal_type && (
               <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 capitalize">
@@ -90,23 +99,32 @@ function TiffinCard({ item, isOrdered, onOrder, isOrdering }: TiffinCardProps) {
             ✓ Already ordered for this slot
           </div>
         ) : (
-          <Button
-            onClick={onOrder}
-            disabled={isOrdering}
-            className="mt-2 w-full bg-amber-500 hover:bg-amber-600 text-white border-0 disabled:opacity-60"
-          >
-            {isOrdering ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Placing Order…
-              </>
-            ) : (
-              <>
-                <ShoppingCart className="h-4 w-4 mr-2" />
-                Order &amp; Pay
-              </>
+          <div className="mt-2">
+            {!isPastDeadline && (
+              <p className="text-xs text-center text-amber-600 mb-2">
+                Orders close at {deadlineStr}
+              </p>
             )}
-          </Button>
+            <Button
+              onClick={onOrder}
+              disabled={isOrdering || isPastDeadline}
+              className="w-full bg-amber-500 hover:bg-amber-600 text-white border-0 disabled:opacity-60"
+            >
+              {isPastDeadline ? (
+                'Deadline Passed'
+              ) : isOrdering ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Placing Order…
+                </>
+              ) : (
+                <>
+                  <ShoppingCart className="h-4 w-4 mr-2" />
+                  Order &amp; Pay
+                </>
+              )}
+            </Button>
+          </div>
         )}
       </CardContent>
     </Card>
@@ -150,6 +168,11 @@ export function StudentMenuPage() {
     }
     setOrderingId(null)
   }
+
+  // Console log for debugging
+  useEffect(() => {
+    console.log('StudentMenuPage menu state:', menu)
+  }, [menu])
 
   // ── Skeleton ──
   if (isLoadingMenu) {
@@ -196,7 +219,7 @@ export function StudentMenuPage() {
         <Card>
           <CardContent className="py-16 text-center">
             <UtensilsCrossed className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-            <p className="text-gray-500 text-lg font-medium">No menu available for tomorrow</p>
+            <p className="text-gray-500 text-lg font-medium">No tiffin scheduled for tomorrow</p>
             <p className="text-gray-400 text-sm mt-1">Check back later or contact your admin.</p>
           </CardContent>
         </Card>

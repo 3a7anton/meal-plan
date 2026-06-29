@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
+import { supabase } from '../../lib/supabaseClient'
 import {
   CreditCard,
   ShoppingBag,
@@ -55,6 +56,18 @@ function PaymentReturnBanner({ status }: { status: string }) {
     )
   }
   return null
+}
+
+function StatusSyncingBanner() {
+  return (
+    <div className="flex items-center gap-3 p-4 bg-blue-50 border border-blue-200 rounded-xl">
+      <Loader2 className="h-6 w-6 text-blue-600 animate-spin flex-shrink-0" />
+      <div>
+        <p className="font-semibold text-blue-800">Verifying Payment...</p>
+        <p className="text-sm text-blue-700">Please wait while we confirm with the payment gateway.</p>
+      </div>
+    </div>
+  )
 }
 
 // ─── Order Summary Card ───────────────────────────────────────────────────────
@@ -122,15 +135,52 @@ export function StudentPaymentPage() {
   const { orders, upcomingOrders, fetchOrders, initiatePayment } = useStudentStore()
 
   const [isPaying, setIsPaying] = useState(false)
-
-  useEffect(() => {
-    // Always refresh orders so we reflect the latest payment state after returning from gateway
-    fetchOrders()
-  }, [fetchOrders])
+  const hasNotified = useRef(false)
 
   // Find the order from both upcoming and all orders
   const allOrders = orders.length > 0 ? orders : upcomingOrders
   const order = orderId ? allOrders.find((o) => o.id === orderId) ?? null : null
+
+  useEffect(() => {
+    if (!orderId) return
+
+    fetchOrders()
+
+    // Real-time subscription to catch IPN updates quickly
+    const channel = supabase
+      .channel(`order-${orderId}`)
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'student_orders', filter: `id=eq.${orderId}` },
+        () => {
+          fetchOrders()
+        }
+      )
+      .subscribe()
+
+    // Fallback polling just in case realtime misses
+    const interval = setInterval(() => {
+      fetchOrders()
+    }, 5000)
+
+    return () => {
+      supabase.removeChannel(channel)
+      clearInterval(interval)
+    }
+  }, [orderId, fetchOrders])
+
+  // Toast notification logic when final status arrives
+  useEffect(() => {
+    if (!order || hasNotified.current) return
+
+    if (returnStatus === 'success' && order.status === 'paid') {
+      toast.success('Payment verified successfully!')
+      hasNotified.current = true
+    } else if (returnStatus === 'fail' || order.status === 'cancelled') {
+      toast.error('Payment failed or cancelled.')
+      hasNotified.current = true
+    }
+  }, [order, returnStatus])
 
   const handlePay = async () => {
     if (!orderId) return
@@ -187,8 +237,12 @@ export function StudentPaymentPage() {
         <ArrowLeft className="h-4 w-4" /> Back to Orders
       </button>
 
-      {/* Return URL banner (success / fail / cancel) */}
-      {returnStatus && <PaymentReturnBanner status={returnStatus} />}
+      {/* Return URL banner: If we returned from gateway with success but DB is still pending, show syncing banner */}
+      {returnStatus === 'success' && order?.status === 'pending' ? (
+        <StatusSyncingBanner />
+      ) : (
+        returnStatus && <PaymentReturnBanner status={returnStatus} />
+      )}
 
       {/* Order summary card */}
       <Card>

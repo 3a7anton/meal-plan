@@ -14,6 +14,7 @@ import {
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { useAuthStore, useUIStore } from '../../store'
+import { getRoleBadgeClasses, getRoleDisplayName } from '../../lib/roles'
 import { cn } from '../../lib/utils'
 
 // ─── Sidebar ────────────────────────────────────────────────────────────────
@@ -91,9 +92,14 @@ function StudentSidebar() {
               </div>
               <div className="min-w-0">
                 <p className="text-sm font-semibold text-gray-900 truncate">{profile?.full_name}</p>
-                <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded-full">
+                <span
+                  className={cn(
+                    'inline-flex items-center gap-1 text-xs font-medium px-1.5 py-0.5 rounded-full',
+                    profile?.role === 'student' ? 'bg-amber-100 text-amber-700' : getRoleBadgeClasses(profile?.role)
+                  )}
+                >
                   <GraduationCap className="h-3 w-3" />
-                  Student
+                  {profile?.role === 'student' ? 'Student' : getRoleDisplayName(profile?.role)}
                 </span>
               </div>
             </div>
@@ -167,10 +173,15 @@ function StudentNavbar() {
           </div>
           <div className="hidden sm:block">
             <p className="text-sm font-medium text-gray-900">{profile?.full_name}</p>
-            <div className="flex items-center gap-1">
-              <GraduationCap className="h-3 w-3 text-amber-600" />
-              <p className="text-xs text-amber-600 font-medium">Student</p>
-            </div>
+            <span
+              className={cn(
+                'inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full',
+                profile?.role === 'student' ? 'bg-amber-100 text-amber-700' : getRoleBadgeClasses(profile?.role)
+              )}
+            >
+              <GraduationCap className="h-3 w-3" />
+              {profile?.role === 'student' ? 'Student' : getRoleDisplayName(profile?.role)}
+            </span>
           </div>
         </div>
       </div>

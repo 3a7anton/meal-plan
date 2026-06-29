@@ -1,11 +1,23 @@
 import { create } from 'zustand'
 import { supabase, setAuthStorage } from '../lib/supabaseClient'
+import { resolveProfileRole } from '../lib/roles'
 import type { Profile } from '../types'
 import type { User, Session } from '@supabase/supabase-js'
 
+export type ProfileWithBalance = Profile & { balance?: number }
+
+function normalizeProfile(raw: any, user: User | null): ProfileWithBalance {
+  const balanceData = Array.isArray(raw.user_balances) ? raw.user_balances[0] : raw.user_balances;
+  return {
+    ...raw,
+    balance: balanceData?.balance ?? 0,
+    role: resolveProfileRole(raw.role, user?.user_metadata?.role),
+  }
+}
+
 interface AuthState {
   user: User | null
-  profile: Profile | null
+  profile: ProfileWithBalance | null
   session: Session | null
   isLoading: boolean
   isInitialized: boolean
@@ -152,29 +164,34 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   fetchProfile: async (userId: string) => {
     try {
+      const { data: authData } = await supabase.auth.getUser()
+      const user = get().user ?? authData.user ?? get().session?.user ?? null
+
       const { data, error } = await supabase
         .from('profiles')
-        .select('*')
+        .select('id, full_name, email, phone, avatar_url, department, role, dietary_preferences, is_active, created_at, user_balances(balance)')
         .eq('id', userId)
         .maybeSingle()
 
       if (error) throw error
 
       if (data) {
-        set({ profile: data })
+        set({ profile: normalizeProfile(data, user) })
       } else {
         // Profile doesn't exist yet — may be a trigger timing issue
         await new Promise((r) => setTimeout(r, 1000))
         const { data: retryData, error: retryError } = await supabase
           .from('profiles')
-          .select('*')
+          .select('id, full_name, email, phone, avatar_url, department, role, dietary_preferences, is_active, created_at, user_balances(balance)')
           .eq('id', userId)
           .maybeSingle()
 
         if (retryError) {
           console.error('Profile retry failed:', retryError)
         }
-        set({ profile: retryData ?? null })
+        set({
+          profile: retryData ? normalizeProfile(retryData, user) : null,
+        })
       }
     } catch (error) {
       console.error('Error fetching profile:', error)

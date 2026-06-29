@@ -239,7 +239,7 @@ export function MenuPage() {
                       onBook={(id) => setBookingScheduleId(id)}
                       userHasBooking={!!existingBooking}
                       userBookingQuantity={existingBooking?.quantity || 1}
-                      bookingTimeLimit={schedule.booking_time_limit || 60}
+                      orderingDeadlineHours={schedule.ordering_deadline_hours || 1}
                     />
                   )
                 })}
@@ -266,7 +266,7 @@ export function MenuPage() {
                       onBook={(id) => setBookingScheduleId(id)}
                       userHasBooking={!!existingBooking}
                       userBookingQuantity={existingBooking?.quantity || 1}
-                      bookingTimeLimit={schedule.booking_time_limit || 60}
+                      orderingDeadlineHours={schedule.ordering_deadline_hours || 1}
                     />
                   )
                 })}
@@ -293,7 +293,7 @@ export function MenuPage() {
                       onBook={(id) => setBookingScheduleId(id)}
                       userHasBooking={!!existingBooking}
                       userBookingQuantity={existingBooking?.quantity || 1}
-                      bookingTimeLimit={schedule.booking_time_limit || 60}
+                      orderingDeadlineHours={schedule.ordering_deadline_hours || 1}
                     />
                   )
                 })}
@@ -320,7 +320,7 @@ export function MenuPage() {
                       onBook={(id) => setBookingScheduleId(id)}
                       userHasBooking={!!existingBooking}
                       userBookingQuantity={existingBooking?.quantity || 1}
-                      bookingTimeLimit={schedule.booking_time_limit || 60}
+                      orderingDeadlineHours={schedule.ordering_deadline_hours || 1}
                     />
                   )
                 })}
@@ -347,7 +347,7 @@ export function MenuPage() {
                       onBook={(id) => setBookingScheduleId(id)}
                       userHasBooking={!!existingBooking}
                       userBookingQuantity={existingBooking?.quantity || 1}
-                      bookingTimeLimit={schedule.booking_time_limit || 60}
+                      orderingDeadlineHours={schedule.ordering_deadline_hours || 1}
                     />
                   )
                 })}

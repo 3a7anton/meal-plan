@@ -133,7 +133,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Fetch the tiffin menu item
     const { data: menuItem, error: menuError } = await supabase
       .from('student_tiffin_menu')
-      .select('id, scheduled_date, capacity, price, is_available')
+      .select('id, scheduled_date, time_slot, capacity, price, is_available, ordering_deadline_hours')
       .eq('id', tiffin_menu_id)
       .single()
 
@@ -146,11 +146,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(409).json({ error: 'This menu item is not available for ordering' })
     }
 
-    // Validate: meal_date must be tomorrow (next-day rule)
-    if (menuItem.scheduled_date !== tomorrow) {
-      return res.status(400).json({
-        error: `Orders can only be placed for tomorrow's menu (${tomorrow}). This item is scheduled for ${menuItem.scheduled_date}.`,
-      })
+    // Check ordering deadline
+    const match = menuItem.time_slot.match(/(\d{1,2}):(\d{2})\s*(AM|PM)?/i)
+    let hours = 23
+    let minutes = 59
+    if (match) {
+      hours = parseInt(match[1], 10)
+      minutes = parseInt(match[2], 10)
+      const ampm = match[3]?.toUpperCase()
+      if (ampm === 'PM' && hours < 12) hours += 12
+      if (ampm === 'AM' && hours === 12) hours = 0
+    }
+    const mealDateStr = `${menuItem.scheduled_date}T${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:00+06:00`
+    const mealDate = new Date(mealDateStr)
+    const deadline = new Date(mealDate.getTime() - (menuItem.ordering_deadline_hours || 1) * 60 * 60 * 1000)
+    
+    if (new Date() > deadline) {
+      return res.status(400).json({ error: "Ordering deadline has passed for this meal" })
     }
 
     // Parallel checks: existing order + capacity

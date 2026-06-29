@@ -43,6 +43,20 @@ interface MealHistoryItem {
   }
 }
 
+interface GuestMealItem {
+  id: string
+  guest_name: string
+  department: string
+  meal_date: string
+  time_slot: string
+  quantity: number
+  notes: string | null
+  status: string
+  created_at: string
+  meal: { name: string, price: number | null } | null
+  creator: { full_name: string } | null
+}
+
 export function MealHistoryPage() {
   const { t, language } = useTranslation()
   const [history, setHistory] = useState<MealHistoryItem[]>([])
@@ -53,6 +67,9 @@ export function MealHistoryPage() {
   const [statusFilter, setStatusFilter] = useState('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
+  const [activeTab, setActiveTab] = useState<'regular' | 'guest'>('regular')
+  const [guestHistory, setGuestHistory] = useState<GuestMealItem[]>([])
+  const [isGuestLoading, setIsGuestLoading] = useState(false)
   const itemsPerPage = 10
   
   // Currency symbol based on language
@@ -89,11 +106,51 @@ export function MealHistoryPage() {
       const result = await response.json()
       setHistory(result.data || [])
       setIsAdmin(result.isAdmin)
+      
+      if (result.isAdmin) {
+        fetchGuestHistory(session.session.access_token)
+      }
     } catch (error) {
       console.error('Error fetching history:', error)
       toast.error(t('error'))
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  const fetchGuestHistory = async (token: string) => {
+    setIsGuestLoading(true)
+    try {
+      const response = await fetch('/api/admin/guest-meals', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+      if (response.ok) {
+        const data = await response.json()
+        setGuestHistory(data || [])
+      }
+    } catch (err) {
+      console.error('Failed to fetch guest meals', err)
+    } finally {
+      setIsGuestLoading(false)
+    }
+  }
+
+  const removeGuestMeal = async (id: string) => {
+    if (!window.confirm('Are you sure you want to remove this guest meal?')) return
+    try {
+      const { data: session } = await supabase.auth.getSession()
+      const response = await fetch(`/api/admin/guest-meals?id=${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${session.session?.access_token}` }
+      })
+      if (response.ok) {
+        toast.success('Guest meal removed')
+        setGuestHistory(prev => prev.filter(g => g.id !== id))
+      } else {
+        toast.error('Failed to remove guest meal')
+      }
+    } catch (err) {
+      toast.error('Failed to remove guest meal')
     }
   }
 
@@ -212,7 +269,33 @@ export function MealHistoryPage() {
         </Card>
       </div>
 
+      {isAdmin && (
+        <div className="flex border-b border-gray-200 mb-6">
+          <button
+            onClick={() => { setActiveTab('regular'); setCurrentPage(1); }}
+            className={`py-3 px-6 text-sm font-medium border-b-2 ${
+              activeTab === 'regular'
+                ? 'border-primary-600 text-primary-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            Regular Bookings
+          </button>
+          <button
+            onClick={() => { setActiveTab('guest'); setCurrentPage(1); }}
+            className={`py-3 px-6 text-sm font-medium border-b-2 ${
+              activeTab === 'guest'
+                ? 'border-primary-600 text-primary-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            Guest Meals
+          </button>
+        </div>
+      )}
+
       {/* Filters */}
+      {activeTab === 'regular' && (
       <Card>
         <CardContent className="pt-4">
           <div className="flex flex-wrap gap-4 items-end">
@@ -271,8 +354,10 @@ export function MealHistoryPage() {
           </div>
         </CardContent>
       </Card>
+      )}
 
       {/* History Table */}
+      {activeTab === 'regular' ? (
       <Card>
         <CardContent className="p-0">
           {isLoading ? (
@@ -409,6 +494,54 @@ export function MealHistoryPage() {
           )}
         </CardContent>
       </Card>
+      ) : (
+      <Card>
+        <CardContent className="p-0">
+          {isGuestLoading ? (
+            <div className="p-8 text-center text-gray-500">Loading guest meals...</div>
+          ) : guestHistory.length === 0 ? (
+            <div className="p-8 text-center text-gray-500">No guest meals found.</div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50 border-b border-gray-200">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Guest Name</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Department</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Meal</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Date & Time</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Qty</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Added By</th>
+                    <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {guestHistory.map((item) => (
+                    <tr key={item.id} className="hover:bg-gray-50">
+                      <td className="px-4 py-3 font-medium text-gray-900">{item.guest_name}</td>
+                      <td className="px-4 py-3 text-sm text-gray-600">{item.department}</td>
+                      <td className="px-4 py-3 text-sm text-gray-900">{item.meal?.name || '-'}</td>
+                      <td className="px-4 py-3 text-sm text-gray-600">
+                        {item.meal_date && format(parseISO(item.meal_date), 'MMM d, yyyy')} <br/>
+                        <span className="text-xs text-gray-400">{item.time_slot}</span>
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-900">{item.quantity}</td>
+                      <td className="px-4 py-3 text-sm text-gray-600">
+                        {item.creator?.full_name || '-'}
+                        {item.notes && <div className="text-xs text-gray-400 mt-1">Note: {item.notes}</div>}
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <Button variant="danger" size="sm" onClick={() => removeGuestMeal(item.id)}>Remove</Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+      )}
     </div>
   )
 }

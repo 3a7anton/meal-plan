@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { supabase } from '../lib/supabaseClient'
+import { useAuthStore } from './authStore'
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -11,6 +12,7 @@ export interface TiffinMenuItem {
   capacity: number
   price: number
   is_available: boolean
+  ordering_deadline_hours?: number
   created_at: string
   meal: {
     id: string
@@ -69,6 +71,7 @@ interface StudentState {
   fetchOrders: () => Promise<void>
   createOrder: (tiffinMenuId: string, quantity?: number) => Promise<{ error: Error | null; order?: StudentOrder }>
   cancelOrder: (orderId: string) => Promise<{ error: Error | null }>
+  payWithBalance: (orderId: string) => Promise<{ error: Error | null }>
   initiatePayment: (orderId: string) => Promise<{ error: Error | null; paymentUrl?: string; tranId?: string }>
 }
 
@@ -101,13 +104,16 @@ export const useStudentStore = create<StudentState>((set, get) => ({
         headers: { Authorization: token },
       })
       if (!res.ok) {
-        const err = await res.json()
-        throw new Error(err.error || 'Failed to fetch menu')
+        const err = await res.json().catch(() => ({}))
+        throw new Error(err.error || `Failed to fetch menu: ${res.status} ${res.statusText}`)
       }
       const data = await res.json()
+      console.log('Student menu API response:', data)
       set({ menu: data.menu ?? {}, menuDate: data.date ?? null })
     } catch (error) {
       console.error('fetchMenu error:', error)
+      // Store an empty menu on error so it shows "No tiffin scheduled" instead of hanging
+      set({ menu: {}, menuDate: null })
     } finally {
       set({ isLoadingMenu: false })
     }
@@ -168,6 +174,7 @@ export const useStudentStore = create<StudentState>((set, get) => ({
       // Update status directly via Supabase client (student can update own rows per RLS)
       const { error } = await supabase
         .from('student_orders')
+        // @ts-ignore
         .update({ status: 'cancelled' })
         .eq('id', orderId)
 
@@ -183,6 +190,57 @@ export const useStudentStore = create<StudentState>((set, get) => ({
           o.id === orderId ? { ...o, status: 'cancelled' as const } : o
         ),
       }))
+
+      return { error: null }
+    } catch (error) {
+      return { error: error as Error }
+    }
+  },
+
+  payWithBalance: async (orderId) => {
+    try {
+      const token = await getAuthHeader()
+      if (!token) return { error: new Error('Not authenticated') }
+
+      const state = get()
+      const order = state.orders.find(o => o.id === orderId)
+      if (!order) return { error: new Error('Order not found') }
+
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return { error: new Error('Not authenticated') }
+
+      // Deduct balance
+      const { error: balanceError } = await supabase.rpc('deduct_meal_balance' as any, {
+        p_user_id: user.id,
+        p_amount: order.total_amount
+      } as any)
+      
+      if (balanceError) throw balanceError
+
+      // Update status directly via Supabase client (student can update own rows per RLS)
+      const { error } = await supabase
+        .from('student_orders')
+        // @ts-ignore
+        .update({ status: 'paid' })
+        .eq('id', orderId)
+
+      if (error) return { error: new Error(error.message) }
+
+      // Optimistically update local state
+      set((state) => ({
+        orders: state.orders.map((o) =>
+          o.id === orderId ? { ...o, status: 'paid' as const } : o
+        ),
+        upcomingOrders: state.upcomingOrders.map((o) =>
+          o.id === orderId ? { ...o, status: 'paid' as const } : o
+        ),
+        pastOrders: state.pastOrders.map((o) =>
+          o.id === orderId ? { ...o, status: 'paid' as const } : o
+        ),
+      }))
+
+      // trigger fetch profile to update balance in auth store
+      useAuthStore.getState().fetchProfile(user.id)
 
       return { error: null }
     } catch (error) {

@@ -15,9 +15,11 @@ import {
   Line,
 } from 'recharts'
 import { Card, CardContent, CardHeader, CardTitle, Loading, Select } from '../../components/ui'
-import { supabase } from '../../lib/supabaseClient'
 import { format, subDays, subMonths } from 'date-fns'
+import { FileText, FileSpreadsheet, Download } from 'lucide-react'
 import type { PaymentWithProfile } from '../../types'
+import { exportToExcel, exportToPDF } from '../../lib/exportUtils'
+import toast from 'react-hot-toast'
 
 interface BookingStats {
   date: string
@@ -77,6 +79,12 @@ export function ReportsPage() {
     individualEarnings: [],
   })
   const [earningsTimeRange, setEarningsTimeRange] = useState<'6months' | '1year'>('6months')
+
+  // Export State
+  const [exportStartDate, setExportStartDate] = useState(format(subDays(new Date(), 30), 'yyyy-MM-dd'))
+  const [exportEndDate, setExportEndDate] = useState(format(new Date(), 'yyyy-MM-dd'))
+  const [exportData, setExportData] = useState<any[]>([])
+  const [isGenerating, setIsGenerating] = useState(false)
 
   useEffect(() => {
     fetchReportData()
@@ -142,19 +150,19 @@ export function ReportsPage() {
         }))
       )
 
-      // Process department stats (accounting for quantity)
-      const deptMap = new Map<string, number>()
+      // Process department stats (School vs Educare)
+      let schoolCount = 0
+      let educareCount = 0
       typedBookings.forEach((booking) => {
-        const dept = booking.profile?.department || 'Unknown'
-        deptMap.set(dept, (deptMap.get(dept) || 0) + (booking.quantity || 1))
+        const dept = booking.profile?.department
+        if (dept === 'School') schoolCount += (booking.quantity || 1)
+        if (dept === 'Educare') educareCount += (booking.quantity || 1)
       })
 
-      setDepartmentStats(
-        Array.from(deptMap.entries())
-          .map(([department, count]) => ({ department, count }))
-          .sort((a, b) => b.count - a.count)
-          .slice(0, 5)
-      )
+      setDepartmentStats([
+        { department: 'School', count: schoolCount },
+        { department: 'Educare', count: educareCount }
+      ])
 
       // Process meal popularity (accounting for quantity)
       const mealMap = new Map<string, number>()
@@ -264,18 +272,72 @@ export function ReportsPage() {
     }
   }
 
+  const handleGenerateReport = async () => {
+    if (!exportStartDate || !exportEndDate) return toast.error('Please select both dates')
+    setIsGenerating(true)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const response = await fetch(`/api/admin/reports/export?startDate=${exportStartDate}&endDate=${exportEndDate}&type=summary`, {
+        headers: { 'Authorization': `Bearer ${session?.access_token}` }
+      })
+      if (!response.ok) throw new Error('Failed to generate report')
+      const result = await response.json()
+      setExportData(result.data || [])
+      toast.success('Report generated! You can now export.')
+    } catch (err) {
+      console.error(err)
+      toast.error('Error generating report')
+    } finally {
+      setIsGenerating(false)
+    }
+  }
+
+  const doExportPDF = () => {
+    if (!exportData.length) return toast.error('Generate report first')
+    exportToPDF(exportData, { filename: `MealReport_${exportStartDate}_to_${exportEndDate}`, title: 'Meal System Summary Report' })
+  }
+
+  const doExportExcel = () => {
+    if (!exportData.length) return toast.error('Generate report first')
+    exportToExcel(exportData, { filename: `MealReport_${exportStartDate}_to_${exportEndDate}` })
+  }
+
   if (isLoading) {
     return <Loading fullScreen text="Loading reports..." />
   }
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      {/* Header and Export Controls */}
+      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Reports</h1>
-          <p className="text-gray-500">Analytics and insights</p>
+          <p className="text-gray-500">Analytics, insights, and exports</p>
         </div>
+
+        {/* Export Section */}
+        <div className="flex flex-wrap items-end gap-3 bg-white p-3 rounded-xl border border-gray-200 shadow-sm">
+          <div>
+            <label className="text-xs text-gray-500 block mb-1">From</label>
+            <input type="date" className="border border-gray-300 rounded px-2 py-1.5 text-sm" value={exportStartDate} onChange={e => setExportStartDate(e.target.value)} />
+          </div>
+          <div>
+            <label className="text-xs text-gray-500 block mb-1">To</label>
+            <input type="date" className="border border-gray-300 rounded px-2 py-1.5 text-sm" value={exportEndDate} onChange={e => setExportEndDate(e.target.value)} />
+          </div>
+          <Button variant="primary" size="sm" onClick={handleGenerateReport} disabled={isGenerating}>
+            {isGenerating ? 'Generating...' : 'Generate Report'}
+          </Button>
+          <Button variant="danger" size="sm" onClick={doExportPDF} disabled={!exportData.length} className="bg-red-500 hover:bg-red-600">
+            <FileText className="h-4 w-4 mr-1" /> Export PDF
+          </Button>
+          <Button variant="success" size="sm" onClick={doExportExcel} disabled={!exportData.length} className="bg-green-600 hover:bg-green-700 text-white border-transparent">
+            <FileSpreadsheet className="h-4 w-4 mr-1" /> Export Excel
+          </Button>
+        </div>
+      </div>
+
+      <div className="flex justify-end">
         <Select
           options={[
             { value: 'week', label: 'Last 7 days' },
@@ -373,7 +435,13 @@ export function ReportsPage() {
                       borderRadius: '8px',
                     }}
                   />
-                  <Bar dataKey="count" fill="#10B981" radius={[0, 4, 4, 0]} />
+                  <Bar dataKey="count" radius={[0, 4, 4, 0]}>
+                    {
+                      departmentStats.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.department === 'School' ? '#3B82F6' : '#8B5CF6'} />
+                      ))
+                    }
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
             </div>

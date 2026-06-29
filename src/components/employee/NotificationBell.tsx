@@ -44,6 +44,9 @@ export function NotificationBell() {
       conflict: '⚠️',
       reminder: '🔔',
       cancelled: '🚫',
+      payment_success: '🎉',
+      new_payment: '💰',
+      payment_pending: '⏳',
     }
     return icons[type] || '📬'
   }

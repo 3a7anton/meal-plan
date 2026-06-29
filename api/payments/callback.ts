@@ -141,6 +141,45 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       if (orderUpdateError) throw orderUpdateError
 
+      // Fetch student info and meal info for notifications
+      const { data: orderDetails } = await supabase
+        .from('student_orders')
+        .select(`
+          meal_date,
+          student:profiles!student_orders_student_id_fkey(full_name),
+          tiffin_menu:student_tiffin_menu!student_orders_tiffin_menu_id_fkey(
+            meal:meals!student_tiffin_menu_meal_id_fkey(name)
+          )
+        `)
+        .eq('id', payment.order_id)
+        .single()
+
+      const studentName = (orderDetails?.student as any)?.full_name || 'Student'
+      const mealName = (orderDetails?.tiffin_menu as any)?.meal?.name || 'Meal'
+      const mealDate = orderDetails?.meal_date || ''
+
+      // Insert student notification
+      await supabase.from('notifications').insert({
+        user_id: payment.student_id,
+        type: 'payment_success',
+        message: `Your payment for ${mealName} was successful. Order confirmed.`
+      })
+
+      // Fetch admins to notify them
+      const { data: admins } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('role', 'admin')
+
+      if (admins && admins.length > 0) {
+        const adminNotifications = admins.map(a => ({
+          user_id: a.id,
+          type: 'new_payment',
+          message: `${studentName} has paid BDT ${payment.amount} for ${mealName} on ${mealDate}.`
+        }))
+        await supabase.from('notifications').insert(adminNotifications)
+      }
+
       logSecurityEvent('ADMIN_ACTION', req, {
         userId: payment.student_id,
         severity: 'INFO',

@@ -18,16 +18,7 @@ const mealSchema = z.object({
 })
 
 type MealForm = z.infer<typeof mealSchema>
-type ScheduleFormInput = { meal_id: string; scheduled_date: string; time_slot: string; capacity: number; booking_time_limit: number; price: number | null }
-
-const timeSlots = [
-  { value: '08:00', label: '8:00 AM' },
-  { value: '09:00', label: '9:00 AM' },
-  { value: '10:00', label: '10:00 AM' },
-  { value: '12:00', label: '12:00 PM' },
-  { value: '13:00', label: '1:00 PM' },
-  { value: '14:00', label: '2:00 PM' },
-]
+type ScheduleFormInput = { meal_id: string; scheduled_date: string; time_slot: string; capacity: number; ordering_deadline_hours: number; price: number | null }
 
 export function MenuManagementPage() {
   const [meals, setMeals] = useState<Meal[]>([])
@@ -45,7 +36,7 @@ export function MenuManagementPage() {
   })
 
   const scheduleForm = useForm<ScheduleFormInput>({
-    defaultValues: { capacity: 10, booking_time_limit: 60, price: null },
+    defaultValues: { capacity: 10, ordering_deadline_hours: 1, price: null },
   })
 
   useEffect(() => {
@@ -142,7 +133,7 @@ export function MenuManagementPage() {
         scheduled_date: data.scheduled_date,
         time_slot: data.time_slot,
         capacity: data.capacity,
-        booking_time_limit: data.booking_time_limit || 60,
+        ordering_deadline_hours: data.ordering_deadline_hours ?? 1,
         price: data.price,
       })
 
@@ -172,7 +163,7 @@ export function MenuManagementPage() {
           scheduled_date: data.scheduled_date,
           time_slot: data.time_slot,
           capacity: data.capacity,
-          booking_time_limit: data.booking_time_limit || 60,
+          ordering_deadline_hours: data.ordering_deadline_hours ?? 1,
           price: data.price,
         })
         .eq('id', editingSchedule.id)
@@ -221,7 +212,7 @@ export function MenuManagementPage() {
       scheduled_date: schedule.scheduled_date,
       time_slot: schedule.time_slot,
       capacity: schedule.capacity,
-      booking_time_limit: schedule.booking_time_limit || 60,
+      ordering_deadline_hours: schedule.ordering_deadline_hours ?? 1,
       price: schedule.price,
     })
     setIsScheduleModalOpen(true)
@@ -363,7 +354,7 @@ export function MenuManagementPage() {
             <CardTitle>Upcoming Schedules</CardTitle>
             <Button onClick={() => {
               setEditingSchedule(null)
-              scheduleForm.reset({ capacity: 10, booking_time_limit: 60, price: null })
+              scheduleForm.reset({ capacity: 10, ordering_deadline_hours: 1, price: null })
               setIsScheduleModalOpen(true)
             }}>
               <Plus className="h-4 w-4 mr-2" />
@@ -510,9 +501,9 @@ export function MenuManagementPage() {
               error={scheduleForm.formState.errors.scheduled_date?.message}
               {...scheduleForm.register('scheduled_date')}
             />
-            <Select
-              label="Time Slot"
-              options={[{ value: '', label: 'Select time' }, ...timeSlots]}
+            <Input
+              label="Time Slot (e.g. 8:30 AM, Sehri)"
+              placeholder="Enter meal time"
               error={scheduleForm.formState.errors.time_slot?.message}
               {...scheduleForm.register('time_slot')}
             />
@@ -525,13 +516,12 @@ export function MenuManagementPage() {
             />
             <div className="grid grid-cols-2 gap-4">
               <Input
-                label="Booking Deadline (minutes before)"
+                label="Order deadline (hours before meal)"
                 type="number"
                 min={0}
-                max={1440}
-                placeholder="60"
-                error={scheduleForm.formState.errors.booking_time_limit?.message}
-                {...scheduleForm.register('booking_time_limit', { valueAsNumber: true })}
+                placeholder="1"
+                error={scheduleForm.formState.errors.ordering_deadline_hours?.message}
+                {...scheduleForm.register('ordering_deadline_hours', { valueAsNumber: true })}
               />
               <Input
                 label="Price (৳) - Optional"
@@ -547,7 +537,7 @@ export function MenuManagementPage() {
               />
             </div>
             <div className="text-sm text-gray-500">
-              = {Math.floor((scheduleForm.watch('booking_time_limit') || 60) / 60)}h {(scheduleForm.watch('booking_time_limit') || 60) % 60}m before meal
+              e.g. Enter {scheduleForm.watch('ordering_deadline_hours') || 1} to close orders {scheduleForm.watch('ordering_deadline_hours') || 1} hours before meal time.
               {scheduleForm.watch('price') ? ` • Custom price: ৳${scheduleForm.watch('price')}` : ' • Uses meal default price'}
             </div>
           </div>

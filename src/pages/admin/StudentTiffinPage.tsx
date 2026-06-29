@@ -44,6 +44,7 @@ interface TiffinMenuItem {
   capacity: number
   price: number
   is_available: boolean
+  ordering_deadline_hours: number
   created_at: string
   meal: Meal | null
 }
@@ -58,18 +59,23 @@ interface OrderStats {
   pendingDeliveries: number
 }
 
+interface RecentPayment {
+  id: string
+  amount: number
+  status: string
+  created_at: string
+  student: { full_name: string } | null
+  order: {
+    meal_date: string
+    tiffin_menu: {
+      meal: { name: string } | null
+    } | null
+  } | null
+}
+
 // ─── Constants ───────────────────────────────────────────────────────────────
 
-const TIME_SLOTS = [
-  { value: '07:00', label: '7:00 AM (Breakfast)' },
-  { value: '08:00', label: '8:00 AM' },
-  { value: '09:00', label: '9:00 AM' },
-  { value: '12:00', label: '12:00 PM (Lunch)' },
-  { value: '13:00', label: '1:00 PM' },
-  { value: '15:00', label: '3:00 PM (Snack)' },
-  { value: '17:00', label: '5:00 PM (Evening)' },
-  { value: '19:00', label: '7:00 PM (Dinner)' },
-]
+// Time slots are now free text instead of fixed options
 
 const tomorrow = () => format(addDays(new Date(), 1), 'yyyy-MM-dd')
 const today    = () => format(new Date(), 'yyyy-MM-dd')
@@ -83,6 +89,7 @@ function emptyForm() {
     time_slot:      '',
     capacity:       20,
     price:          0,
+    ordering_deadline_hours: 1,
     is_available:   true,
   }
 }
@@ -94,6 +101,7 @@ export function StudentTiffinPage() {
   const [meals, setMeals] = useState<Meal[]>([])
   const [menuItems, setMenuItems] = useState<TiffinMenuItemWithOrders[]>([])
   const [stats, setStats] = useState<OrderStats>({ totalOrders: 0, totalRevenue: 0, pendingDeliveries: 0 })
+  const [recentPayments, setRecentPayments] = useState<RecentPayment[]>([])
 
   // ── UI state ──
   const [isLoading, setIsLoading] = useState(true)
@@ -190,12 +198,53 @@ export function StudentTiffinPage() {
     }
   }, [])
 
+  const fetchRecentPayments = useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from('student_payments')
+        .select(`
+          id,
+          amount,
+          status,
+          created_at,
+          student:profiles!student_payments_student_id_fkey(full_name),
+          order:student_orders!student_payments_order_id_fkey(
+            meal_date,
+            tiffin_menu:student_tiffin_menu!student_orders_tiffin_menu_id_fkey(
+              meal:meals!student_tiffin_menu_meal_id_fkey(name)
+            )
+          )
+        `)
+        .order('created_at', { ascending: false })
+        .limit(10)
+
+      if (error) throw error
+      setRecentPayments((data || []) as unknown as RecentPayment[])
+    } catch (err) {
+      console.error('fetchRecentPayments error:', err)
+    }
+  }, [])
+
   // ─── Init ──────────────────────────────────────────────────────────────────
 
   useEffect(() => {
     fetchMeals()
     fetchStats()
-  }, [fetchMeals, fetchStats])
+    fetchRecentPayments()
+
+    // Real-time subscription for payments
+    const channel = supabase
+      .channel('student-payments-admin')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'student_payments' }, () => {
+        fetchRecentPayments()
+        fetchStats()
+      })
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [fetchMeals, fetchStats, fetchRecentPayments])
 
   useEffect(() => {
     fetchMenuItems(dateFilter)
@@ -217,6 +266,7 @@ export function StudentTiffinPage() {
       time_slot:      item.time_slot,
       capacity:       item.capacity,
       price:          Number(item.price),
+      ordering_deadline_hours: item.ordering_deadline_hours ?? 1,
       is_available:   item.is_available,
     })
     setIsModalOpen(true)
@@ -250,6 +300,7 @@ export function StudentTiffinPage() {
         time_slot:      form.time_slot,
         capacity:       Number(form.capacity),
         price:          Number(form.price),
+        ordering_deadline_hours: Number(form.ordering_deadline_hours),
         is_available:   form.is_available,
       }
 
@@ -398,6 +449,72 @@ export function StudentTiffinPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* ── Recent Payments ── */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <DollarSign className="h-5 w-5 text-green-600" />
+            Recent Payments
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-gray-200">
+                  <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Student</th>
+                  <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Meal</th>
+                  <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Amount</th>
+                  <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Date</th>
+                  <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {recentPayments.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="px-4 py-8 text-center text-gray-500">
+                      No recent payments found
+                    </td>
+                  </tr>
+                ) : (
+                  recentPayments.map((payment) => {
+                    const mealName = payment.order?.tiffin_menu?.meal?.name || 'Unknown Meal'
+                    const mealDate = payment.order?.meal_date || ''
+                    const studentName = payment.student?.full_name || 'Unknown Student'
+
+                    return (
+                      <tr key={payment.id} className="hover:bg-gray-50 transition-colors">
+                        <td className="px-4 py-3 text-sm font-medium text-gray-900">{studentName}</td>
+                        <td className="px-4 py-3 text-sm text-gray-600">
+                          {mealName} <span className="text-xs text-gray-400">({mealDate})</span>
+                        </td>
+                        <td className="px-4 py-3 text-sm font-semibold text-gray-900">৳{payment.amount}</td>
+                        <td className="px-4 py-3 text-sm text-gray-500">
+                          {format(new Date(payment.created_at), 'MMM d, h:mm a')}
+                        </td>
+                        <td className="px-4 py-3">
+                          <span
+                            className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                              payment.status === 'success' || payment.status === 'paid'
+                                ? 'bg-green-100 text-green-700'
+                                : payment.status === 'failed' || payment.status === 'cancelled'
+                                ? 'bg-red-100 text-red-700'
+                                : 'bg-amber-100 text-amber-700'
+                            }`}
+                          >
+                            {payment.status.charAt(0).toUpperCase() + payment.status.slice(1)}
+                          </span>
+                        </td>
+                      </tr>
+                    )
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* ── Date filter ── */}
       <Card>
@@ -645,11 +762,8 @@ export function StudentTiffinPage() {
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Time Slot <span className="text-red-500">*</span>
               </label>
-              <Select
-                options={[
-                  { value: '', label: 'Select time slot…' },
-                  ...TIME_SLOTS,
-                ]}
+              <Input
+                placeholder="e.g. 8:30 AM, Sehri"
                 value={form.time_slot}
                 onChange={(e) => setForm((f) => ({ ...f, time_slot: e.target.value }))}
                 required
@@ -684,6 +798,23 @@ export function StudentTiffinPage() {
                   required
                 />
               </div>
+            </div>
+
+            {/* Ordering Deadline */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Order deadline (hours before meal) <span className="text-red-500">*</span>
+              </label>
+              <Input
+                type="number"
+                min={0}
+                value={form.ordering_deadline_hours}
+                onChange={(e) => setForm((f) => ({ ...f, ordering_deadline_hours: Number(e.target.value) }))}
+                required
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                e.g. Enter {form.ordering_deadline_hours || 1} to close orders {form.ordering_deadline_hours || 1} hours before meal time.
+              </p>
             </div>
 
             {/* Available toggle */}

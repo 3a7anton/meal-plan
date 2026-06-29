@@ -20,11 +20,16 @@ export function UserManagementPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [roleFilter, setRoleFilter] = useState<string>('all')
   const [statusFilter, setStatusFilter] = useState<string>('all')
+  const [departmentFilter, setDepartmentFilter] = useState<string>('all')
   const [selectedUser, setSelectedUser] = useState<Profile | null>(null)
   const [actionType, setActionType] = useState<'promote' | 'promote_food' | 'promote_finance' | 'demote' | 'deactivate' | 'activate' | null>(null)
   const [isProcessing, setIsProcessing] = useState(false)
   const [balanceModalOpen, setBalanceModalOpen] = useState(false)
   const [depositAmount, setDepositAmount] = useState('')
+  const [depositNote, setDepositNote] = useState('')
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
+  const [userToDelete, setUserToDelete] = useState<Profile | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
   const { profile: adminProfile } = useAuthStore()
 
   const currentMonth = format(new Date(), 'yyyy-MM')
@@ -123,28 +128,77 @@ export function UserManagementPage() {
 
   const handleAddBalance = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!selectedUser || !depositAmount || !adminProfile) return
+    if (!selectedUser || !depositAmount) return
     const amount = Number(depositAmount)
     if (isNaN(amount) || amount <= 0) return
 
     setIsProcessing(true)
     try {
-      const { error } = await supabase.rpc('add_user_balance' as any, {
-        p_user_id: selectedUser.id,
-        p_amount: amount,
-        p_admin_id: adminProfile.id
+      const { data: { session } } = await supabase.auth.getSession()
+      const token = session?.access_token
+
+      const response = await fetch('/api/admin/users/balance', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ 
+          userId: selectedUser.id, 
+          amount, 
+          note: depositNote 
+        })
       })
-      if (error) throw error
+
+      const result = await response.json()
+      
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to add balance')
+      }
 
       toast.success(`Successfully added ৳${amount} to ${selectedUser.full_name}'s balance.`)
       setBalanceModalOpen(false)
       setDepositAmount('')
+      setDepositNote('')
       fetchUsers()
     } catch (err: any) {
       toast.error('Failed to add balance: ' + err.message)
     } finally {
       setIsProcessing(false)
       setSelectedUser(null)
+    }
+  }
+
+  const handleDeleteAccount = async () => {
+    if (!userToDelete) return
+    setIsDeleting(true)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const token = session?.access_token
+
+      const response = await fetch('/api/admin/users/delete', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ userId: userToDelete.id })
+      })
+
+      const result = await response.json()
+      
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to delete user')
+      }
+
+      toast.success(result.message || 'User deleted')
+      setIsDeleteModalOpen(false)
+      setUserToDelete(null)
+      fetchUsers()
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to delete user')
+    } finally {
+      setIsDeleting(false)
     }
   }
 
@@ -221,6 +275,7 @@ export function UserManagementPage() {
     if (statusFilter === 'active' && !user.is_active) return false
     if (statusFilter === 'inactive' && user.is_active) return false
     if (statusFilter === 'pending' && user.is_active) return false
+    if (departmentFilter !== 'all' && user.department !== departmentFilter) return false
 
     if (searchQuery) {
       const query = searchQuery.toLowerCase()
@@ -363,6 +418,16 @@ export function UserManagementPage() {
             </div>
             <Select
               options={[
+                { value: 'all', label: 'All Departments' },
+                { value: 'School', label: 'School' },
+                { value: 'Educare', label: 'Educare' },
+              ]}
+              value={departmentFilter}
+              onChange={(e) => setDepartmentFilter(e.target.value)}
+              className="w-48"
+            />
+            <Select
+              options={[
                 { value: 'all', label: 'All Roles' },
                 { value: 'admin', label: 'Admin' },
                 { value: 'food_editor', label: 'Food Editor' },
@@ -429,7 +494,7 @@ export function UserManagementPage() {
                         {user.is_active ? (
                           <Badge variant="success">Active</Badge>
                         ) : (
-                          <Badge variant="warning">Pending</Badge>
+                          <Badge className="bg-gray-100 text-gray-700 hover:bg-gray-200">Deactivated</Badge>
                         )}
                       </td>
                       <td className="px-4 py-3">
@@ -499,7 +564,7 @@ export function UserManagementPage() {
                               size="sm"
                               onClick={() => { setSelectedUser(user); setActionType('deactivate') }}
                             >
-                              <UserX className="h-4 w-4 text-red-500" />
+                              <UserX className="h-4 w-4 text-amber-500" />
                             </Button>
                           ) : (
                             <Button
@@ -510,6 +575,14 @@ export function UserManagementPage() {
                               <UserCheck className="h-4 w-4 text-green-500" />
                             </Button>
                           )}
+                          <Button
+                            variant="danger"
+                            size="sm"
+                            onClick={() => { setUserToDelete(user); setIsDeleteModalOpen(true); }}
+                            title="Delete Account"
+                          >
+                            Delete Account
+                          </Button>
                         </div>
                       </td>
                     </tr>
@@ -535,7 +608,7 @@ export function UserManagementPage() {
 
       <Modal
         isOpen={balanceModalOpen}
-        onClose={() => { setBalanceModalOpen(false); setSelectedUser(null); setDepositAmount(''); }}
+        onClose={() => { setBalanceModalOpen(false); setSelectedUser(null); setDepositAmount(''); setDepositNote(''); }}
         title="Add Balance"
       >
         <form onSubmit={handleAddBalance} className="space-y-4">
@@ -555,11 +628,22 @@ export function UserManagementPage() {
               placeholder="e.g. 500"
             />
           </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Note (Optional)
+            </label>
+            <Input
+              type="text"
+              value={depositNote}
+              onChange={(e) => setDepositNote(e.target.value)}
+              placeholder="e.g. Monthly stipend"
+            />
+          </div>
           <div className="flex justify-end gap-3 pt-4 border-t">
             <Button
               type="button"
               variant="outline"
-              onClick={() => { setBalanceModalOpen(false); setSelectedUser(null); setDepositAmount(''); }}
+              onClick={() => { setBalanceModalOpen(false); setSelectedUser(null); setDepositAmount(''); setDepositNote(''); }}
               disabled={isProcessing}
             >
               Cancel
@@ -574,6 +658,36 @@ export function UserManagementPage() {
             </Button>
           </div>
         </form>
+      </Modal>
+
+      <Modal
+        isOpen={isDeleteModalOpen}
+        onClose={() => !isDeleting && setIsDeleteModalOpen(false)}
+        title="Delete Account"
+      >
+        <div className="space-y-4">
+          <p className="text-gray-700">
+            Are you sure you want to permanently delete {userToDelete?.full_name}'s account? This cannot be undone.
+          </p>
+          <div className="flex justify-end gap-3 mt-6">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => setIsDeleteModalOpen(false)}
+              disabled={isDeleting}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="danger"
+              onClick={handleDeleteAccount}
+              disabled={isDeleting}
+            >
+              {isDeleting ? 'Deleting...' : 'Delete Permanently'}
+            </Button>
+          </div>
+        </div>
       </Modal>
     </div>
   )

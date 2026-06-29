@@ -12,7 +12,7 @@ interface MealCardProps {
   isBooking?: boolean
   userHasBooking?: boolean
   userBookingQuantity?: number
-  bookingTimeLimit?: number // in minutes
+  orderingDeadlineHours?: number
 }
 
 export function MealCard({ 
@@ -21,7 +21,7 @@ export function MealCard({
   isBooking, 
   userHasBooking,
   userBookingQuantity = 1,
-  bookingTimeLimit = 60 
+  orderingDeadlineHours = 1
 }: MealCardProps) {
   const { meal, time_slot, remaining_capacity = 0, capacity, scheduled_date, price: schedulePrice } = schedule
   const { t, language } = useTranslation()
@@ -44,7 +44,7 @@ export function MealCard({
   
   const capacityInfo = getCapacityInfo(remaining_capacity)
   const isFull = remaining_capacity <= 0
-  const bookingAllowed = isBookingAllowed(scheduled_date, time_slot, bookingTimeLimit)
+  const bookingAllowed = isBookingAllowed(scheduled_date, time_slot, orderingDeadlineHours || 1)
 
   return (
     <Card className="overflow-hidden hover:shadow-md transition-shadow">
@@ -141,7 +141,7 @@ export function MealCard({
           <BookingTimer 
             scheduledDate={scheduled_date} 
             timeSlot={time_slot} 
-            bookingTimeLimit={bookingTimeLimit} 
+            orderingDeadlineHours={orderingDeadlineHours || 1} 
           />
         </div>
 

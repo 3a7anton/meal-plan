@@ -100,33 +100,27 @@ export const useSettingsStore = create<SettingsState>((set) => ({
   },
 }))
 
+import { getMealDeadline } from '../lib/utils'
+
 // Helper function to check if booking is still allowed
 export function isBookingAllowed(
   scheduledDate: string,
   timeSlot: string,
-  bookingTimeLimitMinutes: number
+  orderingDeadlineHours: number
 ): boolean {
-  const now = new Date()
-  const mealTime = new Date(scheduledDate)
-  const [hours, minutes] = timeSlot.split(':')
-  mealTime.setHours(parseInt(hours), parseInt(minutes), 0, 0)
-
-  const cutoffTime = new Date(mealTime.getTime() - bookingTimeLimitMinutes * 60 * 1000)
-  return now < cutoffTime
+  const cutoffTime = getMealDeadline(scheduledDate, timeSlot, orderingDeadlineHours)
+  return new Date() < cutoffTime
 }
 
 // Helper function to get remaining time for booking
 export function getBookingTimeRemaining(
   scheduledDate: string,
   timeSlot: string,
-  bookingTimeLimitMinutes: number
+  orderingDeadlineHours: number
 ): { hours: number; minutes: number; totalMinutes: number; isExpired: boolean } {
   const now = new Date()
-  const mealTime = new Date(scheduledDate)
-  const [hours, minutes] = timeSlot.split(':')
-  mealTime.setHours(parseInt(hours), parseInt(minutes), 0, 0)
-
-  const cutoffTime = new Date(mealTime.getTime() - bookingTimeLimitMinutes * 60 * 1000)
+  const cutoffTime = getMealDeadline(scheduledDate, timeSlot, orderingDeadlineHours)
+  
   const diffMs = cutoffTime.getTime() - now.getTime()
   const totalMinutes = Math.max(0, Math.floor(diffMs / (1000 * 60)))
   const hrs = Math.floor(totalMinutes / 60)
@@ -147,9 +141,7 @@ export function isCancellationAllowed(
   cancellationTimeLimitMinutes: number
 ): boolean {
   const now = new Date()
-  const mealTime = new Date(scheduledDate)
-  const [hours, minutes] = timeSlot.split(':')
-  mealTime.setHours(parseInt(hours), parseInt(minutes), 0, 0)
+  const mealTime = getMealDeadline(scheduledDate, timeSlot, 0)
 
   const cutoffTime = new Date(mealTime.getTime() - cancellationTimeLimitMinutes * 60 * 1000)
   return now < cutoffTime

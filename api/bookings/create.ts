@@ -99,13 +99,33 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Get schedule details
     const { data: schedule, error: scheduleError } = await supabase
       .from('menu_schedules')
-      .select('scheduled_date, time_slot, capacity')
+      .select('scheduled_date, time_slot, capacity, ordering_deadline_hours')
       .eq('id', menu_schedule_id)
       .single()
 
     if (scheduleError || !schedule) {
       return res.status(404).json({ error: 'Schedule not found' })
     }
+
+    // Check ordering deadline
+    const match = schedule.time_slot.match(/(\d{1,2}):(\d{2})\s*(AM|PM)?/i)
+    let hours = 23
+    let minutes = 59
+    if (match) {
+      hours = parseInt(match[1], 10)
+      minutes = parseInt(match[2], 10)
+      const ampm = match[3]?.toUpperCase()
+      if (ampm === 'PM' && hours < 12) hours += 12
+      if (ampm === 'AM' && hours === 12) hours = 0
+    }
+    const mealDateStr = `${schedule.scheduled_date}T${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:00+06:00`
+    const mealDate = new Date(mealDateStr)
+    const deadline = new Date(mealDate.getTime() - (schedule.ordering_deadline_hours || 1) * 60 * 60 * 1000)
+    
+    if (new Date() > deadline) {
+      return res.status(400).json({ error: "Ordering deadline has passed for this meal" })
+    }
+
 
     // Parallelize independent queries: existing bookings check + capacity check
     const [

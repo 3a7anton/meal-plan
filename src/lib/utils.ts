@@ -15,11 +15,30 @@ export function formatDate(date: Date | string): string {
 }
 
 export function formatTime(time: string): string {
-  const [hours, minutes] = time.split(':')
-  const hour = parseInt(hours)
+  if (!time) return ''
+  const match = time.match(/(\d{1,2}):(\d{2})(?:\s*(AM|PM))?/i)
+  if (!match) return time // Fallback for plain text like "Sehri"
+  if (match[3]) return time // Already has AM/PM
+  
+  const hour = parseInt(match[1], 10)
   const ampm = hour >= 12 ? 'PM' : 'AM'
   const hour12 = hour % 12 || 12
-  return `${hour12}:${minutes} ${ampm}`
+  return `${hour12}:${match[2]} ${ampm}`
+}
+
+export function getMealDeadline(scheduledDate: string, timeSlot: string, deadlineHours: number): Date {
+  const match = timeSlot.match(/(\d{1,2}):(\d{2})\s*(AM|PM)?/i)
+  let hours = 23
+  let minutes = 59
+  if (match) {
+    hours = parseInt(match[1], 10)
+    minutes = parseInt(match[2], 10)
+    const ampm = match[3]?.toUpperCase()
+    if (ampm === 'PM' && hours < 12) hours += 12
+    if (ampm === 'AM' && hours === 12) hours = 0
+  }
+  const mealDate = new Date(`${scheduledDate}T${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:00`)
+  return new Date(mealDate.getTime() - deadlineHours * 60 * 60 * 1000)
 }
 
 export function formatDateShort(date: Date | string): string {

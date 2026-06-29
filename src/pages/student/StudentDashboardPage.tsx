@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   UtensilsCrossed,
@@ -10,10 +10,14 @@ import {
   Package,
   GraduationCap,
   CalendarDays,
+  Wallet,
 } from 'lucide-react'
 import { format } from 'date-fns'
+import toast from 'react-hot-toast'
 import { useAuthStore } from '../../store'
 import { useStudentStore } from '../../store/studentStore'
+import { getRoleBadgeClasses, getRoleDisplayName } from '../../lib/roles'
+import { cn } from '../../lib/utils'
 import { Card, CardContent, CardHeader, CardTitle, Button, CardSkeleton, Badge } from '../../components/ui'
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -29,8 +33,22 @@ const STATUS_CONFIG = {
 
 export function StudentDashboardPage() {
   const { profile } = useAuthStore()
-  const { upcomingOrders, pastOrders, isLoadingOrders, fetchOrders, menu, isLoadingMenu, fetchMenu, menuDate } =
+  const { upcomingOrders, pastOrders, isLoadingOrders, fetchOrders, menu, isLoadingMenu, fetchMenu, menuDate, payWithBalance } =
     useStudentStore()
+  const [isPayingWithBalance, setIsPayingWithBalance] = useState(false)
+
+  const handlePayWithBalance = async (orderId: string) => {
+    setIsPayingWithBalance(true)
+    try {
+      const result = await payWithBalance(orderId)
+      if (result.error) throw result.error
+      toast.success('Successfully paid with balance!')
+    } catch (error: any) {
+      toast.error('Failed to pay with balance: ' + error.message)
+    } finally {
+      setIsPayingWithBalance(false)
+    }
+  }
 
   useEffect(() => {
     fetchOrders()
@@ -77,7 +95,15 @@ export function StudentDashboardPage() {
             <p className="mt-1 text-amber-100">{format(new Date(), 'EEEE, MMMM d, yyyy')}</p>
             <div className="mt-3 flex items-center gap-2">
               <GraduationCap className="h-4 w-4 text-amber-200" />
-              <span className="text-sm text-amber-100 font-medium">Student Tiffin Portal</span>
+              <span
+                className={cn(
+                  'inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full border border-white/30',
+                  profile?.role === 'student' ? 'bg-amber-100 text-amber-700' : getRoleBadgeClasses(profile?.role)
+                )}
+              >
+                {profile?.role === 'student' ? 'Student' : getRoleDisplayName(profile?.role)}
+              </span>
+              <span className="text-sm text-amber-100 font-medium">Tiffin Portal</span>
             </div>
           </div>
           <div className="h-16 w-16 rounded-full bg-white/20 border-2 border-white/30 flex items-center justify-center">
@@ -103,7 +129,7 @@ export function StudentDashboardPage() {
       </div>
 
       {/* Stat Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
         {/* Upcoming orders */}
         <Card className="h-[104px]">
           <CardContent className="flex items-center gap-4 py-4 h-full">
@@ -141,6 +167,21 @@ export function StudentDashboardPage() {
             <div className="min-w-0">
               <p className="text-2xl font-bold text-gray-900 leading-tight">{paidCount || '—'}</p>
               <p className="text-sm text-gray-500 leading-tight">Paid Orders (Total: {totalCount})</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Balance */}
+        <Card className="h-[104px] border-emerald-100 bg-emerald-50/50">
+          <CardContent className="flex items-center gap-4 py-4 h-full">
+            <div className="h-12 w-12 bg-emerald-100 rounded-xl flex items-center justify-center flex-shrink-0">
+              <Wallet className="h-6 w-6 text-emerald-600" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-2xl font-bold text-emerald-700 leading-tight">
+                ৳{Number(profile?.balance || 0).toFixed(0)}
+              </p>
+              <p className="text-sm text-emerald-600 leading-tight">Current Balance</p>
             </div>
           </CardContent>
         </Card>
@@ -188,11 +229,22 @@ export function StudentDashboardPage() {
                 </div>
 
                 {nextOrder.status === 'pending' && (
-                  <Link to={`/student/payment?order_id=${nextOrder.id}`} className="block">
-                    <Button className="w-full bg-amber-500 hover:bg-amber-600 text-white border-0">
-                      Complete Payment
+                  <div className="space-y-2">
+                    <Button 
+                      className="w-full bg-emerald-600 hover:bg-emerald-700 text-white border-0"
+                      onClick={() => handlePayWithBalance(nextOrder.id)}
+                      isLoading={isPayingWithBalance}
+                      disabled={isPayingWithBalance || (profile?.balance || 0) < nextOrder.total_amount}
+                    >
+                      <Wallet className="w-4 h-4 mr-2" />
+                      Pay with Balance (৳{Number(profile?.balance || 0).toFixed(0)})
                     </Button>
-                  </Link>
+                    <Link to={`/student/payment?order_id=${nextOrder.id}`} className="block">
+                      <Button variant="outline" className="w-full text-amber-700 border-amber-200 hover:bg-amber-50">
+                        Pay with SSLCommerz
+                      </Button>
+                    </Link>
+                  </div>
                 )}
               </div>
             ) : (

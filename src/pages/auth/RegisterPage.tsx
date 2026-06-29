@@ -218,15 +218,11 @@ export function RegisterPage() {
                 <Select
                   label={t('department')}
                   options={[
-                    { value: '',                   label: t('selectDepartment') },
-                    { value: 'Academic Department', label: 'Academic Department' },
-                    { value: 'Hifz Department',     label: 'Hifz Department' },
-                    { value: 'IT Department',       label: 'IT Department' },
-                    { value: 'HR',                  label: 'HR' },
-                    { value: 'Finance',             label: 'Finance' },
-                    { value: 'Admission',           label: 'Admission' },
-                    { value: 'Admin',               label: 'Admin' },
+                    { value: '',        label: t('selectDepartment') },
+                    { value: 'School',  label: 'School' },
+                    { value: 'Educare', label: 'Educare' },
                   ]}
+                  error={errors.department?.message}
                   {...register('department')}
                 />
               )}

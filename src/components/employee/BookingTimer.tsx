@@ -6,18 +6,19 @@ import { useTranslation } from '../../hooks/useTranslation'
 interface BookingTimerProps {
   scheduledDate: string
   timeSlot: string
-  bookingTimeLimit: number // in minutes
+  bookingTimeLimit?: number // keeping for backwards compatibility or fallback
+  orderingDeadlineHours: number
 }
 
-export function BookingTimer({ scheduledDate, timeSlot, bookingTimeLimit }: BookingTimerProps) {
+export function BookingTimer({ scheduledDate, timeSlot, orderingDeadlineHours }: BookingTimerProps) {
   const [timeLeft, setTimeLeft] = useState(() =>
-    getBookingTimeRemaining(scheduledDate, timeSlot, bookingTimeLimit)
+    getBookingTimeRemaining(scheduledDate, timeSlot, orderingDeadlineHours)
   )
   const { t } = useTranslation()
 
   useEffect(() => {
     const interval = setInterval(() => {
-      const remaining = getBookingTimeRemaining(scheduledDate, timeSlot, bookingTimeLimit)
+      const remaining = getBookingTimeRemaining(scheduledDate, timeSlot, orderingDeadlineHours)
       setTimeLeft(remaining)
 
       if (remaining.isExpired) {
@@ -26,7 +27,7 @@ export function BookingTimer({ scheduledDate, timeSlot, bookingTimeLimit }: Book
     }, 60000) // Update every minute
 
     return () => clearInterval(interval)
-  }, [scheduledDate, timeSlot, bookingTimeLimit])
+  }, [scheduledDate, timeSlot, orderingDeadlineHours])
 
   if (timeLeft.isExpired) {
     return (

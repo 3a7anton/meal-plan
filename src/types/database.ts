@@ -90,6 +90,7 @@ export interface Database {
           capacity: number
           is_available: boolean
           booking_time_limit: number
+          ordering_deadline_hours: number
           price: number | null
           created_at: string
         }
@@ -101,6 +102,7 @@ export interface Database {
           capacity?: number
           is_available?: boolean
           booking_time_limit?: number
+          ordering_deadline_hours?: number
           price?: number | null
           created_at?: string
         }
@@ -112,6 +114,7 @@ export interface Database {
           capacity?: number
           is_available?: boolean
           booking_time_limit?: number
+          ordering_deadline_hours?: number
           price?: number | null
           created_at?: string
         }
@@ -174,7 +177,7 @@ export interface Database {
         Row: {
           id: string
           user_id: string
-          type: 'booking_confirmed' | 'booking_denied' | 'conflict' | 'reminder' | 'cancelled'
+          type: 'booking_confirmed' | 'booking_denied' | 'conflict' | 'reminder' | 'cancelled' | 'payment_success' | 'new_payment' | 'payment_pending'
           message: string
           is_read: boolean
           created_at: string
@@ -182,7 +185,7 @@ export interface Database {
         Insert: {
           id?: string
           user_id: string
-          type: 'booking_confirmed' | 'booking_denied' | 'conflict' | 'reminder' | 'cancelled'
+          type: 'booking_confirmed' | 'booking_denied' | 'conflict' | 'reminder' | 'cancelled' | 'payment_success' | 'new_payment' | 'payment_pending'
           message: string
           is_read?: boolean
           created_at?: string
@@ -190,7 +193,7 @@ export interface Database {
         Update: {
           id?: string
           user_id?: string
-          type?: 'booking_confirmed' | 'booking_denied' | 'conflict' | 'reminder' | 'cancelled'
+          type?: 'booking_confirmed' | 'booking_denied' | 'conflict' | 'reminder' | 'cancelled' | 'payment_success' | 'new_payment' | 'payment_pending'
           message?: string
           is_read?: boolean
           created_at?: string
@@ -412,6 +415,7 @@ export interface Database {
           capacity: number
           price: number
           is_available: boolean
+          ordering_deadline_hours: number
           created_at: string
         }
         Insert: {
@@ -422,6 +426,7 @@ export interface Database {
           capacity?: number
           price?: number
           is_available?: boolean
+          ordering_deadline_hours?: number
           created_at?: string
         }
         Update: {
@@ -432,6 +437,7 @@ export interface Database {
           capacity?: number
           price?: number
           is_available?: boolean
+          ordering_deadline_hours?: number
           created_at?: string
         }
         Relationships: [
@@ -549,6 +555,158 @@ export interface Database {
             referencedColumns: ["id"]
           }
         ]
+      meal_routines: {
+        Row: {
+          id: string
+          name: string
+          description: string | null
+          routine_type: 'weekly' | 'monthly'
+          is_active: boolean
+          created_by: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          description?: string | null
+          routine_type?: 'weekly' | 'monthly'
+          is_active?: boolean
+          created_by?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          description?: string | null
+          routine_type?: 'weekly' | 'monthly'
+          is_active?: boolean
+          created_by?: string | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meal_routines_created_by_fkey"
+            columns: ["created_by"]
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      meal_routine_items: {
+        Row: {
+          id: string
+          routine_id: string
+          meal_id: string
+          day_of_week: number | null
+          day_of_month: number | null
+          time_slot: string
+          capacity: number | null
+          ordering_deadline_hours: number | null
+          meal_type: 'employee' | 'student' | 'both' | null
+          price: number | null
+        }
+        Insert: {
+          id?: string
+          routine_id: string
+          meal_id: string
+          day_of_week?: number | null
+          day_of_month?: number | null
+          time_slot: string
+          capacity?: number | null
+          ordering_deadline_hours?: number | null
+          meal_type?: 'employee' | 'student' | 'both' | null
+          price?: number | null
+        }
+        Update: {
+          id?: string
+          routine_id?: string
+          meal_id?: string
+          day_of_week?: number | null
+          day_of_month?: number | null
+          time_slot?: string
+          capacity?: number | null
+          ordering_deadline_hours?: number | null
+          meal_type?: 'employee' | 'student' | 'both' | null
+          price?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meal_routine_items_routine_id_fkey"
+            columns: ["routine_id"]
+            referencedRelation: "meal_routines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meal_routine_items_meal_id_fkey"
+            columns: ["meal_id"]
+            referencedRelation: "meals"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      guest_meals: {
+        Row: {
+          id: string
+          created_by: string | null
+          guest_name: string
+          department: 'School' | 'Educare'
+          meal_id: string | null
+          menu_schedule_id: string | null
+          quantity: number
+          notes: string | null
+          meal_date: string
+          time_slot: string
+          status: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          created_by?: string | null
+          guest_name: string
+          department: 'School' | 'Educare'
+          meal_id?: string | null
+          menu_schedule_id?: string | null
+          quantity?: number
+          notes?: string | null
+          meal_date: string
+          time_slot: string
+          status?: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          created_by?: string | null
+          guest_name?: string
+          department?: 'School' | 'Educare'
+          meal_id?: string | null
+          menu_schedule_id?: string | null
+          quantity?: number
+          notes?: string | null
+          meal_date?: string
+          time_slot?: string
+          status?: string
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "guest_meals_created_by_fkey"
+            columns: ["created_by"]
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guest_meals_meal_id_fkey"
+            columns: ["meal_id"]
+            referencedRelation: "meals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guest_meals_menu_schedule_id_fkey"
+            columns: ["menu_schedule_id"]
+            referencedRelation: "menu_schedules"
+            referencedColumns: ["id"]
+          }
+        ]
       }
     }
     Views: {
@@ -568,7 +726,7 @@ export interface Database {
     Enums: {
       booking_status: 'pending' | 'confirmed' | 'denied' | 'cancelled'
       meal_type: 'breakfast' | 'lunch'
-      notification_type: 'booking_confirmed' | 'booking_denied' | 'conflict' | 'reminder' | 'cancelled'
+      notification_type: 'booking_confirmed' | 'booking_denied' | 'conflict' | 'reminder' | 'cancelled' | 'payment_success' | 'new_payment' | 'payment_pending'
       user_role: 'employee' | 'admin' | 'food_editor' | 'finance_editor' | 'student'
     }
     CompositeTypes: {
@@ -588,6 +746,9 @@ export type AppSettings = Database['public']['Tables']['app_settings']['Row']
 export type StudentTiffinMenu = Database['public']['Tables']['student_tiffin_menu']['Row']
 export type StudentOrder = Database['public']['Tables']['student_orders']['Row']
 export type StudentPayment = Database['public']['Tables']['student_payments']['Row']
+export type MealRoutine = Database['public']['Tables']['meal_routines']['Row']
+export type MealRoutineItem = Database['public']['Tables']['meal_routine_items']['Row']
+export type GuestMeal = Database['public']['Tables']['guest_meals']['Row']
 
 // Extended types with relations
 export interface MenuScheduleWithMeal extends MenuSchedule {
